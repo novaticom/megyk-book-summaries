@@ -119,12 +119,13 @@ DECLARE
   max_attempts INTEGER := 10;
 BEGIN
   -- Generate unique code with retry logic
+  -- Note: Must use public. prefix since this trigger runs from auth schema
   LOOP
-    new_code := generate_referral_code();
+    new_code := public.generate_referral_code();
 
     -- Check if code already exists
-    IF NOT EXISTS (SELECT 1 FROM referral_codes WHERE code = new_code) THEN
-      INSERT INTO referral_codes (user_id, code)
+    IF NOT EXISTS (SELECT 1 FROM public.referral_codes WHERE code = new_code) THEN
+      INSERT INTO public.referral_codes (user_id, code)
       VALUES (NEW.id, new_code);
       EXIT;
     END IF;
@@ -288,14 +289,14 @@ DECLARE
 BEGIN
   FOR user_record IN
     SELECT id FROM auth.users
-    WHERE id NOT IN (SELECT user_id FROM referral_codes)
+    WHERE id NOT IN (SELECT user_id FROM public.referral_codes)
   LOOP
     attempts := 0;
     LOOP
-      new_code := generate_referral_code();
+      new_code := public.generate_referral_code();
 
-      IF NOT EXISTS (SELECT 1 FROM referral_codes WHERE code = new_code) THEN
-        INSERT INTO referral_codes (user_id, code)
+      IF NOT EXISTS (SELECT 1 FROM public.referral_codes WHERE code = new_code) THEN
+        INSERT INTO public.referral_codes (user_id, code)
         VALUES (user_record.id, new_code);
         EXIT;
       END IF;

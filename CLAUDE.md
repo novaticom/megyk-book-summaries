@@ -1,5 +1,18 @@
 # Book Summaries Platform - Claude Context
 
+> **Note**: This file lives at the project root so it's automatically read by Claude Code.
+
+## Additional Documentation
+
+**Check `docs/` for detailed documentation on specific topics:**
+- `PRD.md` - Full product requirements and architecture
+- `DEPLOYMENT_CHECKLIST.md` - Production deployment steps
+- `ENV_SETUP.md` - Environment configuration
+- `PWA-PLAN.md` - Progressive Web App implementation
+- `PRE-GENERATED-SUMMARIES-FEATURE.md` - Pre-generated summaries feature spec
+
+When working on a specific feature or debugging an issue, check if there's a relevant doc in `docs/` first.
+
 ## Project Overview
 A personalized book summarizer platform that delivers AI-generated, reader-personalized book summaries. Built with Next.js for web with future mobile app support via React Native.
 
@@ -561,7 +574,28 @@ yarn start
 
 ## Deployment
 
-### Automated Deployment Pipeline
+### Environments
+
+| Environment | URL | Deploy Branch | Supabase |
+|-------------|-----|---------------|----------|
+| Production | app.megyk.com | master | supabase.megyk.com (shared) |
+| Staging | staging.megyk.com | staging | supabase.megyk.com (shared) |
+
+**Note**: Staging and production share the same Supabase instance. This means auth emails (confirmation, password reset) will use the production URL configured in GoTrue. For proper staging isolation, separate Supabase instances would be needed.
+
+### Staging Deployment
+- GitHub Actions workflow triggers on push to `staging` branch
+- SSHs to server and runs `.scripts/deploy-staging.sh`
+- Staging deploy path on server: `/opt/megyk/book-summaries-megyk-staging/`
+- Docker container: `megyk-books-staging`
+
+For code changes, rebuild is required (`--build` flag). For `NEXT_PUBLIC_*` env var changes, use `--no-cache` since these are baked in at build time:
+```bash
+docker compose -f ../n8n-docker-caddy/docker-compose.yml build --no-cache megyk-books-staging
+docker compose -f ../n8n-docker-caddy/docker-compose.yml up -d megyk-books-staging
+```
+
+### Production Deployment (Automated)
 - GitHub Actions workflow triggers on push to `master` branch
 - Executes `.scripts/deploy.sh` on production server
 
@@ -592,7 +626,16 @@ source .env.local && psql "$DATABASE_URL" -f supabase/migrations/016_create_refe
 
 # Or run all migrations in order
 source .env.local && for f in supabase/migrations/*.sql; do psql "$DATABASE_URL" -f "$f"; done
+
+# Interactive session for debugging
+source .env.local && psql "$DATABASE_URL"
 ```
+
+Use this for:
+- Running migrations directly
+- Debugging database issues
+- Checking table contents, triggers, functions
+- Testing database functions
 
 This works with self-hosted Supabase where the CLI may not be configured.
 
