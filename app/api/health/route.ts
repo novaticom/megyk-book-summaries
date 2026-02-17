@@ -50,11 +50,10 @@ export async function GET() {
     health.status = 'unhealthy'
   }
 
-  // Check required environment variables
+  // Check required server-side environment variables
+  // Note: NEXT_PUBLIC_* vars are baked into the JS bundle at build time
+  // and are not available as runtime env vars in standalone mode
   const requiredEnvVars = [
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    'NEXT_PUBLIC_SITE_URL',
     'N8N_WEBHOOK_URL'
   ]
 
