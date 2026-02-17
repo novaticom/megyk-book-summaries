@@ -21,7 +21,12 @@ This document describes the production and staging server setup for Megyk Books.
 
 ## Docker Architecture
 
-All services run via Docker Compose from `/opt/megyk/n8n-docker-caddy/docker-compose.yml`.
+The infrastructure uses two separate Docker Compose configurations:
+
+| Compose File | Location | Purpose |
+|--------------|----------|---------|
+| Application stack | `/opt/megyk/n8n-docker-caddy/docker-compose.yml` | Caddy, n8n, Next.js apps, WordPress, Redis, Ollama, etc. |
+| Supabase | `/opt/megyk/supabase/docker/docker-compose.yml` | Self-hosted Supabase (13 containers) |
 
 ### Networks
 
@@ -31,6 +36,32 @@ All services run via Docker Compose from `/opt/megyk/n8n-docker-caddy/docker-com
 | `supabase_default` | Supabase internal network (external) |
 
 Services that need Supabase access are connected to both networks.
+
+### Network Security Architecture
+
+The infrastructure follows a minimal attack surface approach: services communicate internally over Docker networks and are **not exposed to the public internet**. Only Caddy (the reverse proxy) exposes ports 80/443 to handle all incoming traffic.
+
+**Ports exposed to host (external access):**
+
+| Port | Service | Reason |
+|------|---------|--------|
+| 80, 443 | Caddy | Single public entry point, TLS termination |
+| 5432, 6543 | Supabase Pooler | Database access (connection pooling) |
+| 5433 | Supabase DB | Direct PostgreSQL access |
+| 5678 | n8n | Workflow automation UI |
+| 3201 | Staging app | Direct testing access |
+
+**Internal only (no host port binding):**
+
+All other services communicate purely over Docker networks:
+- Next.js apps (megyk-books, megyk-dashboard)
+- WordPress & MariaDB
+- Redis
+- Ollama
+- html2pdf
+- All Supabase internal services (auth, storage, kong, rest, studio, etc.)
+
+This means even if an attacker gains access to the host, they cannot directly reach these services without going through Caddy or being on the Docker network. Caddy handles TLS termination and routes traffic to containers by service name.
 
 ### Running Containers
 
