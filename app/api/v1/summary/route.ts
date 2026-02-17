@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createCreditService } from '@/lib/services/credits'
+import { getSummaryCreditCost } from '@/lib/types/credits'
+import { SummaryStyle, SummaryLength } from '@/lib/types/preferences'
+import { createReferralService } from '@/lib/services/referrals'
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,6 +52,26 @@ export async function POST(request: NextRequest) {
       const bookTitle = book?.title || 'book'
       const sanitizedTitle = sanitizeFilename(bookTitle)
       return `${sanitizedTitle}_${length}_${style}.pdf`
+    }
+
+    // Check credit balance before generating summary
+    const creditService = createCreditService(supabase)
+    const style = preferences.style as SummaryStyle
+    const length = preferences.length as SummaryLength
+    const creditCost = getSummaryCreditCost(style, length)
+
+    const creditCheck = await creditService.checkBalance(user.id, creditCost)
+
+    if (!creditCheck.has_sufficient_credits) {
+      return NextResponse.json(
+        {
+          error: 'Insufficient credits',
+          required_credits: creditCheck.required_credits,
+          current_balance: creditCheck.current_balance,
+          shortfall: Math.abs(creditCheck.remaining_after),
+        },
+        { status: 402 }
+      )
     }
 
     // Trigger n8n webhook for summary generation
@@ -148,6 +172,35 @@ export async function POST(request: NextRequest) {
             { status: 500 }
           )
         }
+
+        // Deduct credits after successful summary generation
+        const { data: bookData } = await supabase
+          .from('books')
+          .select('title')
+          .eq('id', book_id)
+          .single()
+
+        const creditTransaction = await creditService.deductForSummary(
+          user.id,
+          style,
+          length,
+          summaryData.id,
+          bookData?.title
+        )
+
+        if (!creditTransaction) {
+          console.error('Failed to deduct credits for summary, but summary was generated')
+          // Note: We don't fail the request here since the summary was already generated
+          // This should be monitored and resolved manually if it occurs
+        }
+
+        // Activate referral if this is the user's first action (chat or summary)
+        // This awards bonus credits to both referrer and referred user
+        const referralService = createReferralService(supabase)
+        referralService.activateReferral(user.id, 'summary').catch((error) => {
+          console.error('Failed to activate referral:', error)
+          // Don't fail the request if referral activation fails
+        })
 
         const filename = await getBookFilename(book_id, preferences.length, preferences.style)
 

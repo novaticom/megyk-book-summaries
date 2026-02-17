@@ -1,5 +1,18 @@
 # Book Summaries Platform - Claude Context
 
+> **Note**: This file lives at the project root so it's automatically read by Claude Code.
+
+## Additional Documentation
+
+**Check `docs/` for detailed documentation on specific topics:**
+- `PRD.md` - Full product requirements and architecture
+- `DEPLOYMENT_CHECKLIST.md` - Production deployment steps
+- `ENV_SETUP.md` - Environment configuration
+- `PWA-PLAN.md` - Progressive Web App implementation
+- `PRE-GENERATED-SUMMARIES-FEATURE.md` - Pre-generated summaries feature spec
+
+When working on a specific feature or debugging an issue, check if there's a relevant doc in `docs/` first.
+
 ## Project Overview
 A personalized book summarizer platform that delivers AI-generated, reader-personalized book summaries. Built with Next.js for web with future mobile app support via React Native.
 
@@ -50,6 +63,11 @@ A personalized book summarizer platform that delivers AI-generated, reader-perso
     preferences.ts # Summary style & length type definitions
     summaries.ts   # Summary record types
     books.ts       # Book types
+    credits.ts     # Credit system types and constants
+    referral.ts    # Referral system types and constants
+  /services
+    credits.ts     # Credit service layer
+    referrals.ts   # Referral service layer
   theme.ts         # Mantine theme configuration
   utils.ts         # Utility functions (cn for Tailwind className merging)
 
@@ -58,6 +76,9 @@ A personalized book summarizer platform that delivers AI-generated, reader-perso
   /summary         # GenerateSummaryModal component
   /preferences     # PreferencesForm component
   /onboarding      # OnboardingWizard component
+  /credits         # CreditBalance, CreditCostBadge, InsufficientCreditsModal
+  /referral        # ReferralShareSection component
+  /pwa             # InstallAppSection, useInstallPrompt
 
 /supabase
   /migrations
@@ -358,6 +379,28 @@ timeout 5 bash -c 'cat < /dev/null > /dev/tcp/smtp.resend.com/2525' && echo "Por
   - Works across all environments (local dev and production) - no more orphaned files!
   - Migration: `004_create_storage_bucket.sql`
 
+- **`credit_balances`** - User credit balance tracking
+  - Current balance, lifetime earned, lifetime spent
+  - Auto-created on user signup
+  - Migration: `013_create_credit_system.sql`
+
+- **`credit_transactions`** - Immutable ledger of all credit movements
+  - Transaction types: signup_bonus, summary_generation, chat_message, referral_bonus, etc.
+  - Tracks balance before/after for audit trail
+  - Migration: `013_create_credit_system.sql`
+
+- **`referral_codes`** - Unique 8-character referral code per user
+  - Auto-generated on signup via database trigger
+  - Uses alphanumeric chars excluding confusing ones (0, O, I, 1, L)
+  - Tracks total_referrals and successful_referrals counts
+  - Migration: `016_create_referral_system.sql`
+
+- **`referrals`** - Tracks referrer→referred relationships
+  - Status: `pending`, `completed`, `expired`
+  - Activation type: `chat` or `summary`
+  - Unique constraint on referred_id (one referral per user)
+  - Migration: `016_create_referral_system.sql`
+
 ### 📋 To Be Implemented
 
 - `books` - Core book content
@@ -394,6 +437,25 @@ All API routes follow versioned pattern (`/api/v1/...`) for future SDK/public AP
 - Verifies user ownership before deletion
 - **Removes PDF from Supabase Storage** before deleting DB record
 - Continues with DB deletion even if storage deletion fails
+
+### ✅ `/api/v1/credits` (GET)
+- Returns user's current credit balance and recent transactions
+- Used by CreditBalance component in header
+
+### ✅ `/api/v1/credits/check` (POST)
+- Checks if user can afford a specific action (summary or chat)
+- Returns affordability status with current balance
+
+### ✅ `/api/v1/referrals` (GET)
+- Returns user's referral code and stats
+- Used by ReferralShareSection on profile page
+- Response includes: referral_code, referral_link, pending count, successful count, total_earned
+
+### ✅ `/api/v1/referrals/validate` (GET)
+- Validates a referral code (public endpoint)
+- Query param: `?code=ABCD1234`
+- Used by signup page to show "Referral Applied" badge
+- Returns: valid (boolean), code, error (if invalid)
 
 ### 📋 `/api/v1/books` (GET)
 - Fetch book summaries with embeddings
@@ -466,6 +528,21 @@ All API routes follow versioned pattern (`/api/v1/...`) for future SDK/public AP
   - Works seamlessly across local dev and production environments
   - Automatic cleanup on failed uploads
   - Delete summaries removes both DB record and storage file
+- **Credit System (MC - Megyk Credits)**
+  - Token-based economy for summary generation and chat
+  - 500 MC signup bonus for new users
+  - Credit costs vary by summary style/length and chat messages
+  - Balance displayed in header with tooltip showing lifetime stats
+  - Insufficient credits modal with upgrade prompts
+- **Referral System**
+  - Users earn credits by inviting friends
+  - Referrer gets 1,500 MC when invitee activates
+  - Referred user gets 1,000 MC bonus on activation
+  - Activation = first chat message OR first summary generated
+  - 8-character referral codes auto-generated on signup
+  - Profile page shows share link, stats, and "how it works"
+  - Signup page captures `?ref=CODE` and shows "Referral Applied" badge
+  - Cross-device support via URL params and cookies
 
 ### 🚧 Next Steps
 1. **Run migration**: Execute `004_create_storage_bucket.sql` on your Supabase instance
@@ -497,7 +574,28 @@ yarn start
 
 ## Deployment
 
-### Automated Deployment Pipeline
+### Environments
+
+| Environment | URL | Deploy Branch | Supabase |
+|-------------|-----|---------------|----------|
+| Production | app.megyk.com | master | supabase.megyk.com (shared) |
+| Staging | staging.megyk.com | staging | supabase.megyk.com (shared) |
+
+**Note**: Staging and production share the same Supabase instance. This means auth emails (confirmation, password reset) will use the production URL configured in GoTrue. For proper staging isolation, separate Supabase instances would be needed.
+
+### Staging Deployment
+- GitHub Actions workflow triggers on push to `staging` branch
+- SSHs to server and runs `.scripts/deploy-staging.sh`
+- Staging deploy path on server: `/opt/megyk/book-summaries-megyk-staging/`
+- Docker container: `megyk-books-staging`
+
+For code changes, rebuild is required (`--build` flag). For `NEXT_PUBLIC_*` env var changes, use `--no-cache` since these are baked in at build time:
+```bash
+docker compose -f ../n8n-docker-caddy/docker-compose.yml build --no-cache megyk-books-staging
+docker compose -f ../n8n-docker-caddy/docker-compose.yml up -d megyk-books-staging
+```
+
+### Production Deployment (Automated)
 - GitHub Actions workflow triggers on push to `master` branch
 - Executes `.scripts/deploy.sh` on production server
 
@@ -519,13 +617,35 @@ sudo systemctl restart megyk-books.service
 
 Unlike Laravel's `php artisan migrate`, Next.js doesn't have built-in migration tools. Use one of these methods:
 
-### Option 1: Supabase Dashboard (Easiest for MVP)
-1. Go to https://app.supabase.com
+### Option 1: Ninja Mode (Direct psql - Recommended for Self-Hosted)
+Uses the `DATABASE_URL` from `.env.local` to run migrations directly:
+
+```bash
+# Run a specific migration
+source .env.local && psql "$DATABASE_URL" -f supabase/migrations/016_create_referral_system.sql
+
+# Or run all migrations in order
+source .env.local && for f in supabase/migrations/*.sql; do psql "$DATABASE_URL" -f "$f"; done
+
+# Interactive session for debugging
+source .env.local && psql "$DATABASE_URL"
+```
+
+Use this for:
+- Running migrations directly
+- Debugging database issues
+- Checking table contents, triggers, functions
+- Testing database functions
+
+This works with self-hosted Supabase where the CLI may not be configured.
+
+### Option 2: Supabase Dashboard (SQL Editor)
+1. Go to your Supabase dashboard
 2. Navigate to **SQL Editor**
 3. Copy/paste migration file contents from `supabase/migrations/`
 4. Click **Run**
 
-### Option 2: Supabase CLI (Recommended for Production)
+### Option 3: Supabase CLI (Cloud Supabase only)
 ```bash
 # Install Supabase CLI
 npm install -g supabase
@@ -544,7 +664,14 @@ supabase db push
 - `001_create_user_profiles.sql` - User preferences table
 - `002_create_summaries.sql` - Summaries with metadata tracking
 - `003_update_summaries_rls.sql` - Updated RLS policies for summaries
-- `004_create_storage_bucket.sql` - **NEW: Supabase Storage bucket for PDFs**
+- `004_create_storage_bucket.sql` - Supabase Storage bucket for PDFs
+- `005_create_books_table.sql` - Core books table
+- `006_create_book_covers_bucket.sql` - Storage for book cover images
+- `011_create_book_genres_table.sql` - Book genre categorization
+- `013_create_credit_system.sql` - Credit balances, transactions, costs, chat sessions
+- `014_create_credit_triggers.sql` - Automatic balance updates on transactions
+- `015_seed_credit_costs.sql` - Default credit costs for actions
+- `016_create_referral_system.sql` - Referral codes, referrals tracking, activation rewards
 
 ## Future Roadmap
 
