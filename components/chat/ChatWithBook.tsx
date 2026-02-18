@@ -521,7 +521,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                   {formatCredits(chatCost)}/message
                 </Text>
               </Group>
-              {book && messages.length > 0 && !isSending && (
+              {book && (
                 <Button
                   size="compact-xs"
                   variant="light"
