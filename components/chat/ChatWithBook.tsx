@@ -423,6 +423,29 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                   </Button>
                 ))}
               </Group>
+              <Group gap={8} mt="xs">
+                <Button
+                  size="xs"
+                  variant="filled"
+                  radius="xl"
+                  onClick={() => sendMessageWithText('Coach me through applying this to a specific situation')}
+                  disabled={isSending}
+                  leftSection={<Badge size="xs" color="orange" variant="filled" style={{ fontSize: 9, padding: '2px 4px' }}>NEW</Badge>}
+                  style={
+                    {
+                      fontWeight: 500,
+                      paddingLeft: 8,
+                      paddingRight: 12,
+                      '--button-bg': '#fef3c7',
+                      '--button-hover': '#fde68a',
+                      '--button-color': '#92400e',
+                      '--button-bd': '1px solid #fcd34d',
+                    } as any
+                  }
+                >
+                  Socratic Mode: Coach me through applying this to a specific situation
+                </Button>
+              </Group>
             </Box>
           )}
           {messages.length === 0 && !isSending && (
