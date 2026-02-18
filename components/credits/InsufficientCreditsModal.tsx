@@ -71,7 +71,7 @@ export function InsufficientCreditsModal({
         return
       }
 
-      setSuccess(`Invite sent to ${email}!`)
+      setSuccess(`Invite sent to ${email}`)
       setEmail('')
       setName('')
 
@@ -177,7 +177,7 @@ export function InsufficientCreditsModal({
             </ThemeIcon>
             <div>
               <Text size="sm" fw={600}>
-                Invite a friend, get {REFERRAL_REWARDS.referrer_bonus.toLocaleString()} MC!
+                Invite a friend, earn {REFERRAL_REWARDS.referrer_bonus.toLocaleString()} MC
               </Text>
               <Text size="xs" c="dimmed">
                 They get {REFERRAL_REWARDS.referred_bonus.toLocaleString()} MC too
@@ -244,7 +244,7 @@ export function InsufficientCreditsModal({
           {/* Copy link fallback */}
           <Group justify="center" mt="md" gap="xs">
             <Text size="xs" c="dimmed">or</Text>
-            <Tooltip label={copied ? 'Copied!' : 'Copy your referral link'}>
+            <Tooltip label={copied ? 'Copied' : 'Copy your referral link'}>
               <Button
                 variant="subtle"
                 size="xs"
@@ -252,14 +252,14 @@ export function InsufficientCreditsModal({
                 leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
                 onClick={handleCopyLink}
               >
-                {copied ? 'Copied!' : 'Copy Link'}
+                {copied ? 'Copied' : 'Copy Link'}
               </Button>
             </Tooltip>
           </Group>
         </Paper>
 
         <Text size="xs" c="dimmed" ta="center">
-          Subscription plans coming soon!
+          Subscription plans coming soon
         </Text>
 
         <Group justify="flex-end">

@@ -527,7 +527,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                   style={{ cursor: 'pointer' }}
                   onClick={() => setShowInsufficientModal(true)}
                 >
-                  Invite friends to earn more MC's! ({REFERRAL_REWARDS.referrer_bonus.toLocaleString()} per friend invited)
+                  Invite friends to earn {REFERRAL_REWARDS.referrer_bonus.toLocaleString()} MC per referral
                 </Text>
               </Group>
             )}

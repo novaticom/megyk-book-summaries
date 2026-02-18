@@ -80,7 +80,7 @@ export function ReferralShareSection() {
     try {
       await navigator.share({
         title: 'Join Megyk Books',
-        text: `Sign up for Megyk Books and get ${REFERRAL_REWARDS.referred_bonus.toLocaleString()} bonus MC! Use my referral link:`,
+        text: `Sign up for Megyk Books and start with ${REFERRAL_REWARDS.referred_bonus.toLocaleString()} bonus credits.`,
         url: stats.referral_link,
       })
     } catch (err) {
@@ -150,7 +150,7 @@ export function ReferralShareSection() {
               input: { fontFamily: 'monospace', fontSize: 13 },
             }}
           />
-          <Tooltip label={copied ? 'Copied!' : 'Copy link'}>
+          <Tooltip label={copied ? 'Copied' : 'Copy link'}>
             <Button
               variant={copied ? 'filled' : 'light'}
               color={copied ? 'green' : 'blue'}
@@ -216,7 +216,7 @@ export function ReferralShareSection() {
               <Box w={20} ta="center">
                 <Text size="sm" c="dimmed">3.</Text>
               </Box>
-              <Text size="sm" c="dimmed">When they send their first chat or generate a summary, you both earn bonus credits!</Text>
+              <Text size="sm" c="dimmed">When they send their first chat or generate a summary, you both receive bonus credits</Text>
             </Group>
           </Stack>
           <Group gap="md" mt="md">
