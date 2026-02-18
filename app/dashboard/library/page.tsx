@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Title, Text, Stack, Card, Table, Button, Badge, Loader, Alert, SimpleGrid, Group, Box, Pagination, Center, UnstyledButton, Image, ActionIcon } from '@mantine/core'
-import { IconBook, IconAlertCircle, IconSparkles, IconChevronUp, IconChevronDown, IconSelector, IconSettings } from '@tabler/icons-react'
+import { Container, Title, Text, Stack, Card, Table, Button, Badge, Loader, Alert, SimpleGrid, Group, Box, Pagination, Center, UnstyledButton, Image } from '@mantine/core'
+import { IconBook, IconAlertCircle, IconChevronUp, IconChevronDown, IconSelector } from '@tabler/icons-react'
 import { Book } from '@/lib/types/books'
 import { getDisplayTitle } from '@/lib/utils/bookTitle'
 import { GenerateSummaryModal } from '@/components/summary/GenerateSummaryModal'
@@ -249,7 +249,7 @@ export default function LibraryPage() {
                       <Group justify="space-between" align="flex-start" wrap="wrap">
                         <Stack gap="xs">
                           {book.genre && (
-                            <Badge variant="light" size="sm">
+                            <Badge variant="light" size="sm" color="gray">
                               {book.genre}
                             </Badge>
                           )}
@@ -267,69 +267,24 @@ export default function LibraryPage() {
                           </Group>
                         </Stack>
                         
-                        {book.default_summary_pdf_url ? (
-                          <Group gap="xs">
-                            <Button
-                              size="sm"
-                              variant="filled"
-                              color="blue"
-                              leftSection={<IconSparkles size={16} />}
-                              onClick={() => handleGetSummary(book)}
-                              style={{ flexShrink: 0 }}
-                            >
-                              Get Summary
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="light"
-                              color="gray"
-                              leftSection={<IconSettings size={16} />}
-                              onClick={() => handleGenerateSummary(book)}
-                              style={{ flexShrink: 0 }}
-                            >
-                              Customize
-                            </Button>
-                            <ActionIcon
-                              size="lg"
-                              variant="transparent"
-                              onClick={() => handleOpenChat(book)}
-                              aria-label="Chat with book"
-                            >
-                              <img
-                                src="/chat-with-book/chat-with-book.png"
-                                alt=""
-                                aria-hidden="true"
-                                style={{ display: 'block', height: 24, width: 'auto' }}
-                              />
-                            </ActionIcon>
-                          </Group>
-                        ) : (
-                          <Group gap="xs">
-                            <Button
-                              size="sm"
-                              variant="light"
-                              color="blue"
-                              leftSection={<IconSparkles size={16} />}
-                              onClick={() => handleGetSummary(book)}
-                              style={{ flexShrink: 0 }}
-                            >
-                              Get Summary
-                            </Button>
-                            <ActionIcon
-                              size="lg"
-                              variant="transparent"
-                              onClick={() => handleOpenChat(book)}
-                              aria-label="Chat with book"
-                            >
-                              <img
-                                src="/chat-with-book/chat-with-book.png"
-                                alt=""
-                                aria-hidden="true"
-                                style={{ display: 'block', height: 24, width: 'auto' }}
-                              />
-                            </ActionIcon>
-                          </Group>
-                        )}
+                        <Group gap="xs">
+                          <Button
+                            size="sm"
+                            variant="light"
+                            color="blue"
+                            onClick={() => handleOpenChat(book)}
+                          >
+                            Chat
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="light"
+                            color="blue"
+                            onClick={() => handleGetSummary(book)}
+                          >
+                            Summary
+                          </Button>
+                        </Group>
                       </Group>
                     </Stack>
                   </Group>
@@ -424,7 +379,7 @@ export default function LibraryPage() {
                       <Table.Td>{book.author}</Table.Td>
                       <Table.Td>
                         {book.genre ? (
-                          <Badge variant="light" size="sm">
+                          <Badge variant="light" size="sm" color="gray">
                             {book.genre}
                           </Badge>
                         ) : (
@@ -438,66 +393,24 @@ export default function LibraryPage() {
                         {book.page_count || <Text c="dimmed" size="sm">—</Text>}
                       </Table.Td>
                       <Table.Td>
-                        {book.default_summary_pdf_url ? (
-                          <Group gap={4} wrap="nowrap">
-                            <Button
-                              size="xs"
-                              variant="filled"
-                              color="blue"
-                              leftSection={<IconSparkles size={12} />}
-                              onClick={() => handleGetSummary(book)}
-                            >
-                              Get
-                            </Button>
-                            <Button
-                              size="xs"
-                              variant="light"
-                              color="gray"
-                              leftSection={<IconSettings size={12} />}
-                              onClick={() => handleGenerateSummary(book)}
-                            >
-                              Custom
-                            </Button>
-                            <ActionIcon
-                              size="sm"
-                              variant="transparent"
-                              onClick={() => handleOpenChat(book)}
-                              aria-label="Chat with book"
-                            >
-                              <img
-                                src="/chat-with-book/chat-with-book.png"
-                                alt=""
-                                aria-hidden="true"
-                                style={{ display: 'block', height: 20, width: 'auto' }}
-                              />
-                            </ActionIcon>
-                          </Group>
-                        ) : (
-                          <Group gap={4} wrap="nowrap">
-                            <Button
-                              size="xs"
-                              variant="light"
-                              color="blue"
-                              leftSection={<IconSparkles size={14} />}
-                              onClick={() => handleGetSummary(book)}
-                            >
-                              Get Summary
-                            </Button>
-                            <ActionIcon
-                              size="sm"
-                              variant="transparent"
-                              onClick={() => handleOpenChat(book)}
-                              aria-label="Chat with book"
-                            >
-                              <img
-                                src="/chat-with-book/chat-with-book.png"
-                                alt=""
-                                aria-hidden="true"
-                                style={{ display: 'block', height: 20, width: 'auto' }}
-                              />
-                            </ActionIcon>
-                          </Group>
-                        )}
+                        <Group gap={8} wrap="nowrap">
+                          <Button
+                            size="xs"
+                            variant="light"
+                            color="blue"
+                            onClick={() => handleOpenChat(book)}
+                          >
+                            Chat
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="light"
+                            color="blue"
+                            onClick={() => handleGetSummary(book)}
+                          >
+                            Summary
+                          </Button>
+                        </Group>
                       </Table.Td>
                     </Table.Tr>
                   ))}
