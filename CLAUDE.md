@@ -572,6 +572,19 @@ yarn start
 # See: https://mantine.dev/
 ```
 
+## Development Workflow
+
+### Git & Deployment Policy
+
+**Important**: Do NOT automatically push to master. The workflow is:
+
+1. Make changes on the current branch
+2. Commit the changes
+3. **Stop** - let the user review and smoke test
+4. User decides when to push/merge to master and trigger production deployment
+
+This keeps the user in control of when code hits production.
+
 ## Deployment
 
 ### Environments
