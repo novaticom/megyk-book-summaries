@@ -428,7 +428,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                   size="xs"
                   variant="filled"
                   radius="xl"
-                  onClick={() => sendMessageWithText('Coach me through applying this to a specific situation')}
+                  onClick={() => sendMessageWithText('Help me apply this to a specific situation')}
                   disabled={isSending}
                   leftSection={<Badge size="xs" color="orange" variant="filled" style={{ fontSize: 9, padding: '2px 4px' }}>NEW</Badge>}
                   style={
@@ -443,7 +443,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                     } as any
                   }
                 >
-                  Socratic Mode: Coach me through applying this to a specific situation
+                  Socratic Mode: Help me apply this to a specific situation
                 </Button>
               </Group>
             </Box>
