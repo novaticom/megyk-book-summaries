@@ -478,20 +478,6 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                   ) : (
                     <Text size="md">{renderWithLineBreaks(message.content)}</Text>
                   )}
-                  {message.role === 'assistant' && index === messages.length - 1 && !!book && !isSending && (
-                    <Group mt="xs" justify="flex-start">
-                      <Button
-                        size="xs"
-                        variant="filled"
-                        color="blue"
-                        leftSection={<IconSparkles size={14} />}
-                        onClick={handleGetSummary}
-                        style={{ fontWeight: 600 }}
-                      >
-                        Download Summary
-                      </Button>
-                    </Group>
-                  )}
                 </Box>
               </Box>
             );
@@ -535,6 +521,18 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                   {formatCredits(chatCost)}/message
                 </Text>
               </Group>
+              {book && messages.length > 0 && !isSending && (
+                <Button
+                  size="compact-xs"
+                  variant="light"
+                  color="blue"
+                  leftSection={<IconSparkles size={12} />}
+                  onClick={handleGetSummary}
+                  style={{ fontWeight: 500, fontSize: 11 }}
+                >
+                  Download Summary
+                </Button>
+              )}
               <Badge
                 size="xs"
                 variant="light"
