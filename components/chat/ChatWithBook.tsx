@@ -18,11 +18,10 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-import { IconSend, IconSparkles, IconX, IconCoins, IconGift } from '@tabler/icons-react';
+import { IconSend, IconX, IconCoins, IconGift } from '@tabler/icons-react';
 import { REFERRAL_REWARDS } from '@/lib/types/referral';
 import { Book } from '@/lib/types/books';
 import { getDisplayTitle } from '@/lib/utils/bookTitle';
-import { GenerateSummaryModal } from '@/components/summary/GenerateSummaryModal';
 import {
   getChatMessageCreditCost,
   formatCredits,
@@ -83,7 +82,6 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [summaryModalOpened, setSummaryModalOpened] = useState(false);
   const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -195,7 +193,6 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
       setInput('');
       setIsSending(false);
       setErrorMessage(null);
-      setSummaryModalOpened(false);
       setShowInsufficientModal(false);
     }
   }, [opened]);
@@ -346,15 +343,6 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
   const handleSuggestionClick = (suggestion: string) => {
     // Auto-send on click
     sendMessageWithText(suggestion);
-  };
-
-  const handleGetSummary = () => {
-    if (!book) return;
-    if (book.default_summary_pdf_url) {
-      window.open(book.default_summary_pdf_url, '_blank');
-      return;
-    }
-    setSummaryModalOpened(true);
   };
 
   if (!opened) return null;
@@ -521,18 +509,6 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                   {formatCredits(chatCost)}/message
                 </Text>
               </Group>
-              {book && (
-                <Button
-                  size="compact-xs"
-                  variant="transparent"
-                  color="blue"
-                  leftSection={<IconSparkles size={12} />}
-                  onClick={handleGetSummary}
-                  style={{ fontWeight: 500, fontSize: 11 }}
-                >
-                  Download Summary
-                </Button>
-              )}
               <Badge
                 size="xs"
                 variant="light"
@@ -586,11 +562,6 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
           </ActionIcon>
         </Group>
       </Paper>
-      <GenerateSummaryModal
-        opened={summaryModalOpened}
-        onClose={() => setSummaryModalOpened(false)}
-        book={book}
-      />
       <InsufficientCreditsModal
         opened={showInsufficientModal}
         onClose={() => setShowInsufficientModal(false)}
