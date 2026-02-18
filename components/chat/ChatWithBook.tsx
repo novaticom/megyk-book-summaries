@@ -524,7 +524,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
               {book && (
                 <Button
                   size="compact-xs"
-                  variant="light"
+                  variant="transparent"
                   color="blue"
                   leftSection={<IconSparkles size={12} />}
                   onClick={handleGetSummary}
