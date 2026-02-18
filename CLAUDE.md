@@ -576,14 +576,14 @@ yarn start
 
 ### Git & Deployment Policy
 
-**Important**: Do NOT automatically push to master. The workflow is:
+**Important**: Do NOT automatically commit or push. The workflow is:
 
-1. Make changes on the current branch
-2. Commit the changes
-3. **Stop** - let the user review and smoke test
-4. User decides when to push/merge to master and trigger production deployment
+1. Make changes
+2. **Stop** - let the user review the changes
+3. User commits manually (reviews code during commit)
+4. User pushes/merges when ready to deploy
 
-This keeps the user in control of when code hits production.
+This keeps the user engaged with the codebase and in control of commits and deployments.
 
 ## Deployment
 
