@@ -54,6 +54,8 @@ export async function POST(request: Request) {
     const chatSession = await creditService.getOrCreateChatSession(user.id, bookId);
 
     const webhookUrl = getWebhookUrl();
+    console.log('[Socratic Chat] Webhook URL:', webhookUrl);
+
     if (!webhookUrl) {
       return NextResponse.json(
         { error: 'N8N webhook URL not configured' },
@@ -61,20 +63,27 @@ export async function POST(request: Request) {
       );
     }
 
+    const requestBody = {
+      user_id: user.id,
+      book_id: bookId,
+      message,
+      socratic_exchange_count: socratic_exchange_count ?? 1,
+    };
+    console.log('[Socratic Chat] Request body:', JSON.stringify(requestBody));
+
     const webhookResponse = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: user.id,
-        book_id: bookId,
-        message,
-        socratic_exchange_count: socratic_exchange_count ?? 1,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    console.log('[Socratic Chat] Response status:', webhookResponse.status);
+
     if (!webhookResponse.ok) {
+      const errorText = await webhookResponse.text();
+      console.error('[Socratic Chat] Webhook error response:', errorText);
       return NextResponse.json(
-        { error: 'Failed to fetch chat response' },
+        { error: 'Failed to fetch chat response', details: errorText, status: webhookResponse.status },
         { status: 502 }
       );
     }
@@ -112,9 +121,10 @@ export async function POST(request: Request) {
       data: null,
     });
   } catch (error) {
-    console.error('Error in Socratic chat webhook:', error);
+    console.error('[Socratic Chat] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: errorMessage },
       { status: 500 }
     );
   }
