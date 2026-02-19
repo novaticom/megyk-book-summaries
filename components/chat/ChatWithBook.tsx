@@ -75,6 +75,20 @@ const getChatReply = (payload: unknown) => {
   return '';
 };
 
+// Socratic mode prompts - randomly selected when chat opens
+const SOCRATIC_PROMPTS = [
+  'Help me apply this to a specific situation',
+  'Coach me through implementing this',
+  'Challenge my thinking on this topic',
+  'Help me discover what\'s holding me back',
+  'Guide me to find my own answers',
+  'Ask me questions to deepen my understanding',
+];
+
+const getRandomSocraticPrompt = () => {
+  return SOCRATIC_PROMPTS[Math.floor(Math.random() * SOCRATIC_PROMPTS.length)];
+};
+
 export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -84,6 +98,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+  const [socraticPrompt, setSocraticPrompt] = useState<string>(getRandomSocraticPrompt);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const suggestionsAbortRef = useRef<AbortController | null>(null);
@@ -122,11 +137,12 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
     }
   }, []);
 
-  // Fetch credit balance and reset modal state when chat opens
+  // Fetch credit balance, reset modal state, and pick new Socratic prompt when chat opens
   useEffect(() => {
     if (opened) {
       fetchCreditBalance();
       setShowInsufficientModal(false);
+      setSocraticPrompt(getRandomSocraticPrompt());
     }
   }, [opened, fetchCreditBalance]);
 
@@ -428,7 +444,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                   size="xs"
                   variant="filled"
                   radius="xl"
-                  onClick={() => sendMessageWithText('Help me apply this to a specific situation')}
+                  onClick={() => sendMessageWithText(socraticPrompt)}
                   disabled={isSending}
                   leftSection={<Badge size="xs" color="orange" variant="filled" style={{ fontSize: 9, padding: '2px 4px' }}>NEW</Badge>}
                   style={
@@ -443,7 +459,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                     } as any
                   }
                 >
-                  Socratic Mode: Help me apply this to a specific situation
+                  Socratic Mode: {socraticPrompt}
                 </Button>
               </Group>
             </Box>
