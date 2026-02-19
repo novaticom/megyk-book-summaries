@@ -89,6 +89,14 @@ const getRandomSocraticPrompt = () => {
   return SOCRATIC_PROMPTS[Math.floor(Math.random() * SOCRATIC_PROMPTS.length)];
 };
 
+// Check if a message triggers Socratic mode
+const isSocraticTrigger = (message: string) => {
+  const lowerMessage = message.toLowerCase();
+  return SOCRATIC_PROMPTS.some(prompt =>
+    lowerMessage.includes(prompt.toLowerCase())
+  ) || /coach me|guide me|ask me questions|help me (apply|discover|find)/i.test(message);
+};
+
 export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -99,6 +107,8 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
   const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [socraticPrompt, setSocraticPrompt] = useState<string>(getRandomSocraticPrompt);
+  // Track Socratic mode: the message index where Socratic mode started (null = not in Socratic mode)
+  const [socraticStartIndex, setSocraticStartIndex] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const suggestionsAbortRef = useRef<AbortController | null>(null);
@@ -118,11 +128,13 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
     if (!bookId) {
       setMessages([]);
       setSuggestions([]);
+      setSocraticStartIndex(null);
       suggestionsAbortRef.current?.abort();
       suggestionsAbortRef.current = null;
       return;
     }
     setMessages([]);
+    setSocraticStartIndex(null);
   }, [bookId]);
 
   const fetchCreditBalance = useCallback(async () => {
@@ -138,11 +150,13 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
   }, []);
 
   // Fetch credit balance, reset modal state, and pick new Socratic prompt when chat opens
+  // Also reset Socratic mode so fresh chat windows always start in normal mode
   useEffect(() => {
     if (opened) {
       fetchCreditBalance();
       setShowInsufficientModal(false);
       setSocraticPrompt(getRandomSocraticPrompt());
+      setSocraticStartIndex(null);
     }
   }, [opened, fetchCreditBalance]);
 
@@ -210,6 +224,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
       setIsSending(false);
       setErrorMessage(null);
       setShowInsufficientModal(false);
+      setSocraticStartIndex(null);
     }
   }, [opened]);
 
@@ -219,16 +234,39 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
     const messageText = text.trim();
     setInput('');
     setErrorMessage(null);
+
+    // Check if this message triggers Socratic mode
+    const isNewSocraticTrigger = socraticStartIndex === null && isSocraticTrigger(messageText);
+    const currentMessageCount = messages.length;
+
+    // If this is a new Socratic trigger, set the start index
+    if (isNewSocraticTrigger) {
+      setSocraticStartIndex(currentMessageCount);
+    }
+
+    // Calculate Socratic mode state for the API
+    const effectiveSocraticStart = isNewSocraticTrigger ? currentMessageCount : socraticStartIndex;
+    const inSocraticMode = effectiveSocraticStart !== null;
+    // Count user messages since Socratic mode started (each exchange = 1 user message + 1 assistant reply)
+    // We count user messages only, which equals the number of exchanges
+    const socraticExchangeCount = inSocraticMode
+      ? messages.slice(effectiveSocraticStart).filter(m => m.role === 'user').length + 1 // +1 for current message
+      : 0;
+
     setMessages((prev) => [...prev, { id: createId(), role: 'user', content: messageText }]);
     setIsSending(true);
 
+    // Use separate endpoint for Socratic mode (shares memory via book_id session key)
+    const endpoint = inSocraticMode ? '/api/v1/book-chat-socratic' : '/api/v1/book-chat';
+
     try {
-      const response = await fetch('/api/v1/book-chat', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           book_id: book.id,
           message: messageText,
+          socratic_exchange_count: socraticExchangeCount,
         }),
       });
 
@@ -283,6 +321,11 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
             try {
               const data = JSON.parse(trimmedLine);
 
+              // Check for socratic_complete flag to exit Socratic mode
+              if (data?.socratic_complete === true) {
+                setSocraticStartIndex(null);
+              }
+
               // Handle n8n NDJSON format: {"type":"item","content":"text",...}
               if (data?.type === 'item' && typeof data?.content === 'string') {
                 setMessages((prev) =>
@@ -292,6 +335,10 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                       : msg
                   )
                 );
+                // Also check for socratic_complete in the item data
+                if (data?.socratic_complete === true) {
+                  setSocraticStartIndex(null);
+                }
               }
               // Handle SSE format: {"progress":{"delta":"text"}}
               else if (typeof data?.progress?.delta === 'string') {
@@ -321,6 +368,11 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
         // Handle non-streaming JSON response (backwards compatibility)
         const payload = await response.json().catch(() => ({}));
         const replyText = getChatReply(payload?.reply ?? payload?.data ?? payload);
+
+        // Check for socratic_complete flag to exit Socratic mode
+        if (payload?.socratic_complete === true) {
+          setSocraticStartIndex(null);
+        }
 
         setMessages((prev) => [
           ...prev,
