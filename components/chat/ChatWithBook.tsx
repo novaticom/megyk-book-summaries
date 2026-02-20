@@ -76,6 +76,19 @@ const getChatReply = (payload: unknown) => {
   return '';
 };
 
+// Socratic mode prompts - randomly selected when chat opens
+const SOCRATIC_PROMPTS = [
+  'Help me apply this to a specific situation',
+  'Coach me through implementing this',
+  'Challenge my thinking on this topic',
+  'Help me discover what\'s holding me back',
+  'Guide me to find my own answers',
+  'Ask me questions to deepen my understanding',
+];
+
+const getRandomSocraticPrompt = () => {
+  return SOCRATIC_PROMPTS[Math.floor(Math.random() * SOCRATIC_PROMPTS.length)];
+};
 
 export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -89,6 +102,8 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
   const [socraticModeEnabled, setSocraticModeEnabled] = useState(false);
   // Track the message index where Socratic mode started (for exchange counting)
   const [socraticStartIndex, setSocraticStartIndex] = useState<number | null>(null);
+  // Randomly selected Socratic prompt (changes each time chat opens)
+  const [socraticPrompt, setSocraticPrompt] = useState<string>(getRandomSocraticPrompt);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const suggestionsAbortRef = useRef<AbortController | null>(null);
@@ -129,13 +144,14 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
     }
   }, []);
 
-  // Fetch credit balance and reset Socratic mode when chat opens
+  // Fetch credit balance, reset Socratic mode, and pick new prompt when chat opens
   useEffect(() => {
     if (opened) {
       fetchCreditBalance();
       setShowInsufficientModal(false);
       setSocraticModeEnabled(false);
       setSocraticStartIndex(null);
+      setSocraticPrompt(getRandomSocraticPrompt());
     }
   }, [opened, fetchCreditBalance]);
 
@@ -387,6 +403,13 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
     sendMessageWithText(suggestion);
   };
 
+  const handleSocraticSuggestionClick = () => {
+    // Enable Socratic mode and send the opening message
+    setSocraticModeEnabled(true);
+    setSocraticStartIndex(messages.length);
+    sendMessageWithText(socraticPrompt);
+  };
+
   if (!opened) return null;
 
   return (
@@ -444,6 +467,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                   track: {
                     backgroundColor: socraticModeEnabled ? '#f59e0b' : undefined,
                     borderColor: socraticModeEnabled ? '#f59e0b' : undefined,
+                    cursor: 'pointer',
                   },
                 }}
               />
@@ -455,7 +479,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
         </Group>
         <Divider />
         <ScrollArea style={{ flex: 1 }} px="md" py="sm">
-          {(isLoadingSuggestions || suggestions.length > 0) && (
+          {(isLoadingSuggestions || suggestions.length > 0 || messages.length === 0) && (
             <Box mb="sm">
               <Group gap={8} wrap="wrap">
                 {isLoadingSuggestions && (
@@ -486,6 +510,28 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                     {suggestion}
                   </Button>
                 ))}
+                {/* Socratic mode suggestion - amber styling */}
+                <Button
+                  size="xs"
+                  variant="filled"
+                  radius="xl"
+                  onClick={handleSocraticSuggestionClick}
+                  disabled={isSending || socraticModeEnabled}
+                  leftSection={<Badge size="xs" color="orange" variant="filled" style={{ fontSize: 9, padding: '2px 4px' }}>NEW</Badge>}
+                  style={
+                    {
+                      fontWeight: 500,
+                      paddingLeft: 8,
+                      paddingRight: 12,
+                      '--button-bg': '#fef3c7',
+                      '--button-hover': '#fde68a',
+                      '--button-color': '#92400e',
+                      '--button-bd': '1px solid #fcd34d',
+                    } as any
+                  }
+                >
+                  Socratic Mode: {socraticPrompt}
+                </Button>
               </Group>
             </Box>
           )}
