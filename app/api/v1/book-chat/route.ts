@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { book_id: bookId, message } = body || {};
+    const { book_id: bookId, message, socratic_mode, socratic_exchange_count } = body || {};
 
     if (!bookId || !message) {
       return NextResponse.json(
@@ -69,6 +69,8 @@ export async function POST(request: Request) {
         user_id: user.id,
         book_id: bookId,
         message,
+        socratic_mode: socratic_mode ?? false,
+        socratic_exchange_count: socratic_exchange_count ?? 0,
       }),
     });
 
