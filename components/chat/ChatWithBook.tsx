@@ -13,6 +13,7 @@ import {
   Paper,
   Portal,
   ScrollArea,
+  Switch,
   Text,
   TextInput,
   Tooltip,
@@ -75,27 +76,6 @@ const getChatReply = (payload: unknown) => {
   return '';
 };
 
-// Socratic mode prompts - randomly selected when chat opens
-const SOCRATIC_PROMPTS = [
-  'Help me apply this to a specific situation',
-  'Coach me through implementing this',
-  'Challenge my thinking on this topic',
-  'Help me discover what\'s holding me back',
-  'Guide me to find my own answers',
-  'Ask me questions to deepen my understanding',
-];
-
-const getRandomSocraticPrompt = () => {
-  return SOCRATIC_PROMPTS[Math.floor(Math.random() * SOCRATIC_PROMPTS.length)];
-};
-
-// Check if a message triggers Socratic mode
-const isSocraticTrigger = (message: string) => {
-  const lowerMessage = message.toLowerCase();
-  return SOCRATIC_PROMPTS.some(prompt =>
-    lowerMessage.includes(prompt.toLowerCase())
-  ) || /coach me|guide me|ask me questions|help me (apply|discover|find)/i.test(message);
-};
 
 export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -106,8 +86,8 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
-  const [socraticPrompt, setSocraticPrompt] = useState<string>(getRandomSocraticPrompt);
-  // Track Socratic mode: the message index where Socratic mode started (null = not in Socratic mode)
+  const [socraticModeEnabled, setSocraticModeEnabled] = useState(false);
+  // Track the message index where Socratic mode started (for exchange counting)
   const [socraticStartIndex, setSocraticStartIndex] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -149,13 +129,12 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
     }
   }, []);
 
-  // Fetch credit balance, reset modal state, and pick new Socratic prompt when chat opens
-  // Also reset Socratic mode so fresh chat windows always start in normal mode
+  // Fetch credit balance and reset Socratic mode when chat opens
   useEffect(() => {
     if (opened) {
       fetchCreditBalance();
       setShowInsufficientModal(false);
-      setSocraticPrompt(getRandomSocraticPrompt());
+      setSocraticModeEnabled(false);
       setSocraticStartIndex(null);
     }
   }, [opened, fetchCreditBalance]);
@@ -224,6 +203,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
       setIsSending(false);
       setErrorMessage(null);
       setShowInsufficientModal(false);
+      setSocraticModeEnabled(false);
       setSocraticStartIndex(null);
     }
   }, [opened]);
@@ -235,23 +215,11 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
     setInput('');
     setErrorMessage(null);
 
-    // Check if this message triggers Socratic mode
-    const isNewSocraticTrigger = socraticStartIndex === null && isSocraticTrigger(messageText);
-    const currentMessageCount = messages.length;
-
-    // If this is a new Socratic trigger, set the start index
-    if (isNewSocraticTrigger) {
-      setSocraticStartIndex(currentMessageCount);
-    }
-
     // Calculate Socratic mode state for the API
-    const effectiveSocraticStart = isNewSocraticTrigger ? currentMessageCount : socraticStartIndex;
-    const inSocraticMode = effectiveSocraticStart !== null;
-    // Count user messages since Socratic mode started (each exchange = 1 user message + 1 assistant reply)
-    // We count user messages only, which equals the number of exchanges
-    const socraticExchangeCount = inSocraticMode
-      ? messages.slice(effectiveSocraticStart).filter(m => m.role === 'user').length + 1 // +1 for current message
-      : 0;
+    const inSocraticMode = socraticModeEnabled;
+    const socraticExchangeCount = inSocraticMode && socraticStartIndex !== null
+      ? messages.slice(socraticStartIndex).filter(m => m.role === 'user').length + 1
+      : inSocraticMode ? 1 : 0;
 
     setMessages((prev) => [...prev, { id: createId(), role: 'user', content: messageText }]);
     setIsSending(true);
@@ -371,6 +339,7 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
 
         // Check for socratic_complete flag to exit Socratic mode
         if (payload?.socratic_complete === true) {
+          setSocraticModeEnabled(false);
           setSocraticStartIndex(null);
         }
 
@@ -394,6 +363,11 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
     } finally {
       setIsSending(false);
       requestAnimationFrame(() => inputRef.current?.focus());
+      // Auto-disable after max exchanges so the backend synthesizes and wraps up
+      if (inSocraticMode && socraticExchangeCount >= 5) {
+        setSocraticModeEnabled(false);
+        setSocraticStartIndex(null);
+      }
     }
   };
 
@@ -453,9 +427,31 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
               </Text>
             </Tooltip>
           </Group>
-          <ActionIcon variant="subtle" size="sm" onClick={onClose} aria-label="Close chat">
-            <IconX size={16} />
-          </ActionIcon>
+          <Group gap="xs" wrap="nowrap" align="center">
+            <Tooltip label="Socratic mode guides you to insights through questions" withArrow>
+              <Switch
+                size="xs"
+                label="Socratic"
+                labelPosition="left"
+                checked={socraticModeEnabled}
+                onChange={(e) => {
+                  const enabled = e.currentTarget.checked;
+                  setSocraticModeEnabled(enabled);
+                  setSocraticStartIndex(enabled ? messages.length : null);
+                }}
+                styles={{
+                  label: { color: '#92400e', fontWeight: 600, fontSize: 11, cursor: 'pointer' },
+                  track: {
+                    backgroundColor: socraticModeEnabled ? '#f59e0b' : undefined,
+                    borderColor: socraticModeEnabled ? '#f59e0b' : undefined,
+                  },
+                }}
+              />
+            </Tooltip>
+            <ActionIcon variant="subtle" size="sm" onClick={onClose} aria-label="Close chat">
+              <IconX size={16} />
+            </ActionIcon>
+          </Group>
         </Group>
         <Divider />
         <ScrollArea style={{ flex: 1 }} px="md" py="sm">
@@ -490,29 +486,6 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
                     {suggestion}
                   </Button>
                 ))}
-              </Group>
-              <Group gap={8} mt="xs">
-                <Button
-                  size="xs"
-                  variant="filled"
-                  radius="xl"
-                  onClick={() => sendMessageWithText(socraticPrompt)}
-                  disabled={isSending}
-                  leftSection={<Badge size="xs" color="orange" variant="filled" style={{ fontSize: 9, padding: '2px 4px' }}>NEW</Badge>}
-                  style={
-                    {
-                      fontWeight: 500,
-                      paddingLeft: 8,
-                      paddingRight: 12,
-                      '--button-bg': '#fef3c7',
-                      '--button-hover': '#fde68a',
-                      '--button-color': '#92400e',
-                      '--button-bd': '1px solid #fcd34d',
-                    } as any
-                  }
-                >
-                  Socratic Mode: {socraticPrompt}
-                </Button>
               </Group>
             </Box>
           )}
