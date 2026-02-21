@@ -501,20 +501,37 @@ export default function DashboardPage() {
             />
           )}
         </Stack>
-        {booksLoading ? (
-          <Center py="xl">
-            <Loader size="md" />
-          </Center>
-        ) : recommendedBooks.length > 0 ? (
-          <BookCarousel
-            books={recommendedBooks}
-            showTitle={false}
-          />
-        ) : (
-          <Center py="xl">
-            <Text c="dimmed">No books found for this tag</Text>
-          </Center>
-        )}
+        <Box style={{ position: 'relative', minHeight: 200 }}>
+          {booksLoading && (
+            <Box
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                zIndex: 10,
+                borderRadius: 8,
+              }}
+            >
+              <Loader size="md" />
+            </Box>
+          )}
+          {recommendedBooks.length > 0 ? (
+            <BookCarousel
+              books={recommendedBooks}
+              showTitle={false}
+            />
+          ) : !booksLoading ? (
+            <Center py="xl">
+              <Text c="dimmed">No books found for this tag</Text>
+            </Center>
+          ) : null}
+        </Box>
       </Box>
 
       {/* Recent Summaries - More compact, less prominent */}

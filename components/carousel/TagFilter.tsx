@@ -1,6 +1,6 @@
 'use client'
 
-import { Group, Button, ScrollArea } from '@mantine/core'
+import { Box, Button } from '@mantine/core'
 import { BookTag } from '@/lib/types/books'
 import styles from './TagFilter.module.css'
 
@@ -21,37 +21,30 @@ export function TagFilter({ tags, selectedTag, onTagSelect }: TagFilterProps) {
   }
 
   return (
-    <ScrollArea
-      type="scroll"
-      scrollbarSize={6}
-      offsetScrollbars
-      className={styles.scrollArea}
-    >
-      <Group gap="xs" wrap="nowrap" className={styles.tagGroup}>
+    <Box className={styles.tagContainer}>
+      <Button
+        variant={selectedTag === null ? 'filled' : 'light'}
+        color="blue"
+        size="sm"
+        radius="xl"
+        className={styles.tagPill}
+        onClick={() => handleTagClick(null)}
+      >
+        All
+      </Button>
+      {tags.map((tag) => (
         <Button
-          variant={selectedTag === null ? 'filled' : 'light'}
+          key={tag.id}
+          variant={selectedTag === tag.slug ? 'filled' : 'light'}
           color="blue"
           size="sm"
           radius="xl"
           className={styles.tagPill}
-          onClick={() => handleTagClick(null)}
+          onClick={() => handleTagClick(tag.slug)}
         >
-          All
+          {tag.name}
         </Button>
-        {tags.map((tag) => (
-          <Button
-            key={tag.id}
-            variant={selectedTag === tag.slug ? 'filled' : 'light'}
-            color="blue"
-            size="sm"
-            radius="xl"
-            className={styles.tagPill}
-            onClick={() => handleTagClick(tag.slug)}
-          >
-            {tag.name}
-          </Button>
-        ))}
-      </Group>
-    </ScrollArea>
+      ))}
+    </Box>
   )
 }
