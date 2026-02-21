@@ -1,3 +1,10 @@
+export interface BookTag {
+  id: number
+  name: string
+  slug: string
+  display_order?: number
+}
+
 export interface Book {
   id: string
   title: string
@@ -10,6 +17,7 @@ export interface Book {
   cover_image_url?: string
   page_count?: number
   default_summary_pdf_url?: string
+  tags?: BookTag[]
   created_at: string
   updated_at: string
 }

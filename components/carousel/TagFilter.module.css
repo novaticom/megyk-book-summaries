@@ -1,0 +1,31 @@
+.scrollArea {
+  width: 100%;
+}
+
+.tagGroup {
+  padding-bottom: 4px;
+}
+
+.tagPill {
+  flex-shrink: 0;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.tagPill:hover {
+  transform: translateY(-1px);
+}
+
+/* Ensure horizontal scroll works well on mobile */
+@media (max-width: 768px) {
+  .scrollArea {
+    margin: 0 -1rem;
+    padding: 0 1rem;
+    width: calc(100% + 2rem);
+  }
+
+  .tagGroup {
+    padding-left: 0;
+    padding-right: 1rem;
+  }
+}

@@ -24,9 +24,10 @@ import {
 import { useRouter } from 'next/navigation';
 import { SUMMARY_STYLE_OPTIONS, SUMMARY_LENGTH_OPTIONS } from '@/lib/types/preferences';
 import { BookCarousel } from '@/components/carousel/BookCarousel';
+import { TagFilter } from '@/components/carousel/TagFilter';
 import { ChatWithBook } from '@/components/chat/ChatWithBook';
 import { GenerateSummaryModal } from '@/components/summary/GenerateSummaryModal';
-import { Book } from '@/lib/types/books';
+import { Book, BookTag } from '@/lib/types/books';
 import { getDisplayTitle } from '@/lib/utils/bookTitle';
 
 interface RecentSummary {
@@ -313,7 +314,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const [recentSummaries, setRecentSummaries] = useState<RecentSummary[]>([]);
   const [recommendedBooks, setRecommendedBooks] = useState<Book[]>([]);
+  const [availableTags, setAvailableTags] = useState<BookTag[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [booksLoading, setBooksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chatOpened, setChatOpened] = useState(false);
   const [chatBook, setChatBook] = useState<Book | null>(null);
@@ -322,7 +326,45 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
+    fetchTags();
   }, []);
+
+  // Re-fetch books when tag changes
+  useEffect(() => {
+    if (availableTags.length > 0) {
+      fetchBooks(selectedTag);
+    }
+  }, [selectedTag]);
+
+  const fetchTags = async () => {
+    try {
+      const response = await fetch('/api/v1/tags');
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableTags(data.tags || []);
+      }
+    } catch (err) {
+      console.error('[DashboardPage] Error fetching tags:', err);
+    }
+  };
+
+  const fetchBooks = async (tagSlug: string | null) => {
+    setBooksLoading(true);
+    try {
+      const url = tagSlug
+        ? `/api/v1/books?limit=12&tag=${encodeURIComponent(tagSlug)}`
+        : '/api/v1/books?limit=12';
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        setRecommendedBooks(data.books || []);
+      }
+    } catch (err) {
+      console.error('[DashboardPage] Error fetching books:', err);
+    } finally {
+      setBooksLoading(false);
+    }
+  };
 
   // Listen for tour events to open/close chat
   useEffect(() => {
@@ -447,21 +489,33 @@ export default function DashboardPage() {
         {/* Hero Section - Continue Reading */}
         <HeroSection book={featuredBook} onOpenChat={handleOpenChat} onGetSummary={handleGetSummary} />
 
-      {/* Recommended Books Carousel */}
-      {recommendedBooks.length > 0 && (
-        <Box id="tour-recommended-carousel">
-          <Stack gap="md" mb="md">
-            <Title id="tour-recommended-title" order={2} c="#000000">Recommended For You</Title>
-            <Text size="lg" c="#374151">
-              Handpicked books based on your interests
-            </Text>
-          </Stack>
-          <BookCarousel 
+      {/* Books Carousel with Tag Filter */}
+      <Box id="tour-recommended-carousel">
+        <Stack gap="md" mb="md">
+          <Title id="tour-recommended-title" order={2} c="#000000">Browse Books</Title>
+          {availableTags.length > 0 && (
+            <TagFilter
+              tags={availableTags}
+              selectedTag={selectedTag}
+              onTagSelect={setSelectedTag}
+            />
+          )}
+        </Stack>
+        {booksLoading ? (
+          <Center py="xl">
+            <Loader size="md" />
+          </Center>
+        ) : recommendedBooks.length > 0 ? (
+          <BookCarousel
             books={recommendedBooks}
             showTitle={false}
           />
-        </Box>
-      )}
+        ) : (
+          <Center py="xl">
+            <Text c="dimmed">No books found for this tag</Text>
+          </Center>
+        )}
+      </Box>
 
       {/* Recent Summaries - More compact, less prominent */}
       {recentSummaries.length > 0 && (
