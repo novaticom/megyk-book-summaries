@@ -15,6 +15,7 @@ import {
 } from '@/lib/types/preferences'
 import { Book } from '@/lib/types/books'
 import { getDisplayTitle } from '@/lib/utils/bookTitle'
+import { trackSummaryGenerated, trackReferralInviteSent, trackReferralLinkCopied } from '@/lib/analytics/gtm'
 import { getSummaryCreditCost, formatCredits, CreditBalance } from '@/lib/types/credits'
 import { refreshCreditBalance } from '@/components/credits'
 
@@ -180,6 +181,9 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
         return
       }
 
+      // Track referral invite sent
+      trackReferralInviteSent({ invite_method: 'modal' })
+
       setInviteSuccess(`Invite sent to ${inviteEmail}!`)
       setInviteEmail('')
       setInviteName('')
@@ -198,6 +202,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
       const link = referralLink || await fetchReferralLink()
       if (link) {
         await navigator.clipboard.writeText(link)
+        trackReferralLinkCopied()
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       }
@@ -213,6 +218,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
         textArea.select()
         document.execCommand('copy')
         document.body.removeChild(textArea)
+        trackReferralLinkCopied()
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       }
@@ -284,6 +290,15 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
             window.URL.revokeObjectURL(url)
             document.body.removeChild(a)
           }, 100)
+
+          // Track successful summary generation
+          trackSummaryGenerated({
+            book_id: book.id,
+            book_title: book.title,
+            style,
+            length,
+            credit_cost: creditCost,
+          })
 
           notifications.show({
             title: 'Summary Generated!',

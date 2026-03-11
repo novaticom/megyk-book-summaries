@@ -6,6 +6,7 @@ import { Container, Paper, Title, Text, TextInput, PasswordInput, Button, Stack,
 import { IconAlertCircle, IconCheck, IconGift } from '@tabler/icons-react'
 import { createClient } from '@/lib/supabase/client'
 import { useUTMTracking } from '@/hooks/useUTMTracking'
+import { trackSignUp } from '@/lib/analytics/gtm'
 import { REFERRAL_CODE_PARAM, REFERRAL_CODE_COOKIE, REFERRAL_COOKIE_MAX_AGE, REFERRAL_REWARDS } from '@/lib/types/referral'
 
 function SignUpForm() {
@@ -115,6 +116,12 @@ function SignUpForm() {
         console.error('Signup webhook failed:', webhookError)
         // Don't fail the signup if webhook fails
       }
+
+      // Track successful signup
+      trackSignUp({
+        method: 'email',
+        has_referral: !!referralCode,
+      })
 
       // Check if email confirmation is required
       if (data.user && !data.user.confirmed_at) {

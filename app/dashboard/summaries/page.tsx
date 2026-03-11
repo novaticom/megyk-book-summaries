@@ -6,6 +6,7 @@ import { IconBookmark, IconDownload, IconTrash } from '@tabler/icons-react'
 import { SummaryWithBook } from '@/lib/types/summaries'
 import { getDisplayTitle } from '@/lib/utils/bookTitle'
 import { SUMMARY_STYLE_OPTIONS, SUMMARY_LENGTH_OPTIONS } from '@/lib/types/preferences'
+import { trackSummaryDownloaded } from '@/lib/analytics/gtm'
 import styles from './summaries.module.css'
 
 // Helper functions for book covers
@@ -89,6 +90,14 @@ export default function SummariesPage() {
       a.download = filename
       document.body.appendChild(a)
       a.click()
+
+      // Track successful download
+      trackSummaryDownloaded({
+        summary_id: summaryId,
+        book_title: bookTitle,
+        style,
+        length,
+      })
 
       setTimeout(() => {
         window.URL.revokeObjectURL(url)

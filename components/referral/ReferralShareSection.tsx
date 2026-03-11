@@ -27,6 +27,7 @@ import {
   IconAlertCircle,
 } from '@tabler/icons-react'
 import { ReferralStats, REFERRAL_REWARDS } from '@/lib/types/referral'
+import { trackReferralLinkCopied, trackReferralLinkShared } from '@/lib/analytics/gtm'
 
 export function ReferralShareSection() {
   const [stats, setStats] = useState<ReferralStats | null>(null)
@@ -67,6 +68,7 @@ export function ReferralShareSection() {
 
     try {
       await navigator.clipboard.writeText(stats.referral_link)
+      trackReferralLinkCopied()
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
@@ -83,6 +85,7 @@ export function ReferralShareSection() {
         text: `Sign up for Megyk Books and start with ${REFERRAL_REWARDS.referred_bonus.toLocaleString()} bonus credits.`,
         url: stats.referral_link,
       })
+      trackReferralLinkShared()
     } catch (err) {
       // User cancelled or share failed - not an error
       if ((err as Error).name !== 'AbortError') {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Container, Paper, Title, Text, TextInput, PasswordInput, Button, Stack, Anchor, Alert } from '@mantine/core'
 import { IconAlertCircle } from '@tabler/icons-react'
 import { createClient } from '@/lib/supabase/client'
+import { trackLogin } from '@/lib/analytics/gtm'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -34,6 +35,9 @@ export default function SignInPage() {
         }
         return
       }
+
+      // Track successful login
+      trackLogin({ method: 'email' })
 
       // Redirect to dashboard on success
       router.push('/dashboard')

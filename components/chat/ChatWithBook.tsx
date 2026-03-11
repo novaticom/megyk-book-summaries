@@ -30,6 +30,7 @@ import {
   CreditBalance,
 } from '@/lib/types/credits';
 import { InsufficientCreditsModal, refreshCreditBalance } from '@/components/credits';
+import { trackChatMessageSent } from '@/lib/analytics/gtm';
 
 interface ChatWithBookProps {
   opened: boolean;
@@ -368,6 +369,14 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
           },
         ]);
       }
+      // Track successful chat message
+      trackChatMessageSent({
+        book_id: book.id,
+        book_title: book.title,
+        is_socratic_mode: inSocraticMode,
+        credit_cost: chatCost,
+      });
+
       // Refresh credit balance after message completes (small delay for DB sync)
       setTimeout(() => {
         fetchCreditBalance();
