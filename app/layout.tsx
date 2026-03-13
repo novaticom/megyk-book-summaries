@@ -48,7 +48,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`}>
         <PwaModeClass />
         <div className="pwa-standalone-indicator" aria-hidden="true" />
-        <GoogleTagManager gtmId="GTM-PVC2PRSN" />
+        <GoogleTagManager gtmId="GTM-WNR6MV8H" />
         <MantineProvider theme={theme} forceColorScheme="light">
           <ModalsProvider>
             <Notifications />
