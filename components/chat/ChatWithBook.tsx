@@ -36,6 +36,7 @@ interface ChatWithBookProps {
   opened: boolean;
   onClose: () => void;
   book: Book | null;
+  loadHistory?: boolean;  // true when resuming from Collections
 }
 
 type ChatMessage = {
@@ -91,13 +92,14 @@ const getRandomSocraticPrompt = () => {
   return SOCRATIC_PROMPTS[Math.floor(Math.random() * SOCRATIC_PROMPTS.length)];
 };
 
-export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
+export function ChatWithBook({ opened, onClose, book, loadHistory = false }: ChatWithBookProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [socraticModeEnabled, setSocraticModeEnabled] = useState(false);
@@ -155,6 +157,36 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
       setSocraticPrompt(getRandomSocraticPrompt());
     }
   }, [opened, fetchCreditBalance]);
+
+  // Load chat history when resuming from Collections
+  useEffect(() => {
+    if (!opened || !loadHistory || !bookId) return;
+
+    const fetchHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        const response = await fetch(`/api/v1/chat-history?bookId=${bookId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.messages && data.messages.length > 0) {
+            // Convert API messages to ChatMessage format
+            const loadedMessages: ChatMessage[] = data.messages.map((msg: any) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+            }));
+            setMessages(loadedMessages);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchHistory();
+  }, [opened, loadHistory, bookId]);
 
   useEffect(() => {
     if (!opened || !bookId) return;
@@ -544,10 +576,20 @@ export function ChatWithBook({ opened, onClose, book }: ChatWithBookProps) {
               </Group>
             </Box>
           )}
-          {messages.length === 0 && !isSending && (
+          {isLoadingHistory && (
+            <Box py="md">
+              <Group gap="xs">
+                <Loader size="xs" />
+                <Text size="sm" c="dimmed">
+                  Loading chat history...
+                </Text>
+              </Group>
+            </Box>
+          )}
+          {messages.length === 0 && !isSending && !isLoadingHistory && (
             <Box py="md">
               <Text size="sm" c="dimmed">
-                Ask a question about this book and I’ll respond here.
+                Ask a question about this book and I'll respond here.
               </Text>
             </Box>
           )}
