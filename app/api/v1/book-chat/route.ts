@@ -4,6 +4,29 @@ import { createCreditService } from '@/lib/services/credits';
 import { getChatMessageCreditCost } from '@/lib/types/credits';
 import { createReferralService } from '@/lib/services/referrals';
 
+/**
+ * Save a chat message to the database
+ */
+async function saveChatMessage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  chatSessionId: string,
+  role: 'user' | 'assistant',
+  content: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('chat_messages')
+    .insert({
+      chat_session_id: chatSessionId,
+      role,
+      content,
+    })
+
+  if (error) {
+    console.error('Error saving chat message:', error)
+    // Don't throw - message saving failure shouldn't break the chat
+  }
+}
+
 const getWebhookUrl = () => {
   const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
   if (!n8nWebhookUrl) return null;
@@ -26,6 +49,13 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { book_id: bookId, message, socratic_mode, socratic_exchange_count } = body || {};
+
+    console.log('[book-chat] Request received', {
+      bookId,
+      userId: user.id,
+      messageLength: message?.length,
+      referer: request.headers.get('referer')
+    });
 
     if (!bookId || !message) {
       return NextResponse.json(
@@ -104,15 +134,72 @@ export async function POST(request: Request) {
     });
 
     // Stream the response from n8n to enable real-time updates
-    // n8n sends NDJSON (newline-delimited JSON) for streaming responses
+    // Also capture the full response to save to database
     if (webhookResponse.body) {
-      return new Response(webhookResponse.body, {
+      let fullAssistantResponse = ''
+
+      const transformStream = new TransformStream({
+        transform(chunk, controller) {
+          // Pass chunk through to client
+          controller.enqueue(chunk)
+
+          // Decode and capture content for saving
+          const text = new TextDecoder().decode(chunk)
+          const lines = text.split('\n')
+
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed) continue
+
+            try {
+              const data = JSON.parse(trimmed)
+              // Handle n8n NDJSON format
+              if (data?.type === 'item' && typeof data?.content === 'string') {
+                fullAssistantResponse += data.content
+              }
+              // Handle SSE format
+              else if (typeof data?.progress?.delta === 'string') {
+                fullAssistantResponse += data.progress.delta
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        },
+        async flush() {
+          // Stream complete - save messages to database
+          console.log('[book-chat] Stream flush called', {
+            hasSession: !!chatSession?.id,
+            sessionId: chatSession?.id,
+            bookId,
+            responseLength: fullAssistantResponse.length,
+            messagePreview: message.substring(0, 50)
+          })
+
+          if (chatSession?.id && fullAssistantResponse) {
+            console.log('[book-chat] Saving messages to session:', chatSession.id)
+            // Save user message
+            await saveChatMessage(supabase, chatSession.id, 'user', message)
+            // Save assistant response
+            await saveChatMessage(supabase, chatSession.id, 'assistant', fullAssistantResponse)
+            console.log('[book-chat] Messages saved successfully')
+          } else {
+            console.log('[book-chat] NOT saving messages:', {
+              reason: !chatSession?.id ? 'no session' : 'empty response'
+            })
+          }
+        }
+      })
+
+      const transformedStream = webhookResponse.body.pipeThrough(transformStream)
+
+      return new Response(transformedStream, {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
         },
-      });
+      })
     }
 
     // Fallback for responses without a body
