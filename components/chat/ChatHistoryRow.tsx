@@ -28,8 +28,8 @@ export function ChatHistoryRow({
   return (
     <Box
       style={{
-        background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
-        border: '1px solid #3b82f6',
+        background: '#f9fafb',
+        border: '1px solid #e5e7eb',
         borderRadius: '8px',
         padding: '12px 16px',
         marginBottom: '12px',
@@ -37,17 +37,17 @@ export function ChatHistoryRow({
     >
       <Group justify="space-between" wrap="nowrap">
         <Group gap="sm" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-          <IconMessage size={20} style={{ color: '#60a5fa', flexShrink: 0 }} />
+          <IconMessage size={20} style={{ color: '#6b7280', flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
-            <Text fw={500} c="white" size="sm">
+            <Text fw={500} c="dark" size="sm">
               Chat History
             </Text>
             <Group gap="xs">
-              <Text size="xs" c="gray.4">
+              <Text size="xs" c="dimmed">
                 {session.message_count} {session.message_count === 1 ? 'message' : 'messages'}
               </Text>
-              <Text size="xs" c="gray.5">•</Text>
-              <Text size="xs" c="gray.4">
+              <Text size="xs" c="dimmed">•</Text>
+              <Text size="xs" c="dimmed">
                 Last: {formatDate(session.last_message_at)}
               </Text>
             </Group>
