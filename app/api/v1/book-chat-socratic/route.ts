@@ -163,11 +163,25 @@ export async function POST(request: Request) {
         },
         async flush() {
           // Stream complete - save messages to database
+          console.log('[book-chat-socratic] Stream flush called', {
+            hasSession: !!chatSession?.id,
+            sessionId: chatSession?.id,
+            bookId,
+            responseLength: fullAssistantResponse.length,
+            messagePreview: message.substring(0, 50)
+          })
+
           if (chatSession?.id && fullAssistantResponse) {
+            console.log('[book-chat-socratic] Saving messages to session:', chatSession.id)
             // Save user message
             await saveChatMessage(supabase, chatSession.id, 'user', message)
             // Save assistant response
             await saveChatMessage(supabase, chatSession.id, 'assistant', fullAssistantResponse)
+            console.log('[book-chat-socratic] Messages saved successfully')
+          } else {
+            console.log('[book-chat-socratic] NOT saving messages:', {
+              reason: !chatSession?.id ? 'no session' : 'empty response'
+            })
           }
         }
       })

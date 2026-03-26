@@ -277,6 +277,13 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = false }: Cha
     const endpoint = inSocraticMode ? '/api/v1/book-chat-socratic' : '/api/v1/book-chat';
 
     try {
+      console.log('[ChatWithBook] Sending message', {
+        endpoint,
+        bookId: book.id,
+        bookTitle: book.title,
+        messageLength: messageText.length
+      });
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

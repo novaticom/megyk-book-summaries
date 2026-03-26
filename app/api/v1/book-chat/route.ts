@@ -50,6 +50,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { book_id: bookId, message, socratic_mode, socratic_exchange_count } = body || {};
 
+    console.log('[book-chat] Request received', {
+      bookId,
+      userId: user.id,
+      messageLength: message?.length,
+      referer: request.headers.get('referer')
+    });
+
     if (!bookId || !message) {
       return NextResponse.json(
         { error: 'Book ID and message are required' },
@@ -161,11 +168,25 @@ export async function POST(request: Request) {
         },
         async flush() {
           // Stream complete - save messages to database
+          console.log('[book-chat] Stream flush called', {
+            hasSession: !!chatSession?.id,
+            sessionId: chatSession?.id,
+            bookId,
+            responseLength: fullAssistantResponse.length,
+            messagePreview: message.substring(0, 50)
+          })
+
           if (chatSession?.id && fullAssistantResponse) {
+            console.log('[book-chat] Saving messages to session:', chatSession.id)
             // Save user message
             await saveChatMessage(supabase, chatSession.id, 'user', message)
             // Save assistant response
             await saveChatMessage(supabase, chatSession.id, 'assistant', fullAssistantResponse)
+            console.log('[book-chat] Messages saved successfully')
+          } else {
+            console.log('[book-chat] NOT saving messages:', {
+              reason: !chatSession?.id ? 'no session' : 'empty response'
+            })
           }
         }
       })
