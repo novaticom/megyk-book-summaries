@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { Container, Title, Text, Stack, Card, Center, Button, Group, Badge, Loader, Table, SimpleGrid, Box, Image } from '@mantine/core'
 import { IconBookmark, IconDownload, IconTrash } from '@tabler/icons-react'
 import { SummaryWithBook } from '@/lib/types/summaries'
+import { ChatSessionWithBook } from '@/lib/types/chat'
+import { ChatHistoryRow } from '@/components/chat/ChatHistoryRow'
+import { ChatWithBook } from '@/components/chat/ChatWithBook'
 import { getDisplayTitle } from '@/lib/utils/bookTitle'
 import { SUMMARY_STYLE_OPTIONS, SUMMARY_LENGTH_OPTIONS } from '@/lib/types/preferences'
 import { trackSummaryDownloaded } from '@/lib/analytics/gtm'
@@ -32,9 +35,15 @@ export default function SummariesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [chatSessions, setChatSessions] = useState<ChatSessionWithBook[]>([])
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null)
+  const [chatBook, setChatBook] = useState<any>(null)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [loadChatHistory, setLoadChatHistory] = useState(false)
 
   useEffect(() => {
     fetchSummaries()
+    fetchChatSessions()
   }, [])
 
   const fetchSummaries = async () => {
@@ -53,6 +62,18 @@ export default function SummariesPage() {
       setError('Failed to load summaries')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchChatSessions = async () => {
+    try {
+      const response = await fetch('/api/v1/chat-sessions')
+      if (response.ok) {
+        const data = await response.json()
+        setChatSessions(data.sessions || [])
+      }
+    } catch (err) {
+      console.error('Error fetching chat sessions:', err)
     }
   }
 
@@ -143,6 +164,44 @@ export default function SummariesPage() {
     return SUMMARY_LENGTH_OPTIONS.find(opt => opt.value === length)?.label || length
   }
 
+  const handleResumeChat = (session: ChatSessionWithBook) => {
+    setChatBook(session.book)
+    setLoadChatHistory(true)
+    setChatOpen(true)
+  }
+
+  const handleDeleteChat = async (sessionId: string) => {
+    if (!confirm('Are you sure you want to delete this chat history? This action cannot be undone.')) {
+      return
+    }
+
+    setDeletingChatId(sessionId)
+
+    try {
+      const response = await fetch(`/api/v1/chat-sessions/${sessionId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete chat session')
+      }
+
+      setChatSessions(chatSessions.filter(s => s.id !== sessionId))
+    } catch (err) {
+      console.error('Error deleting chat session:', err)
+      alert('Failed to delete chat history. Please try again.')
+    } finally {
+      setDeletingChatId(null)
+    }
+  }
+
+  const handleChatClose = () => {
+    setChatOpen(false)
+    setChatBook(null)
+    setLoadChatHistory(false)
+    fetchChatSessions()
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -154,7 +213,7 @@ export default function SummariesPage() {
   }
 
   // Group summaries by book
-  const groupedSummaries = summaries.reduce((acc, summary) => {
+  const summariesByBook = summaries.reduce((acc, summary) => {
     const bookId = summary.book_id
     if (!acc[bookId]) {
       acc[bookId] = {
@@ -166,7 +225,37 @@ export default function SummariesPage() {
     return acc
   }, {} as Record<string, { book: any, summaries: SummaryWithBook[] }>)
 
-  const books = Object.values(groupedSummaries)
+  // Create chat sessions lookup by book_id
+  const chatSessionsByBook = chatSessions.reduce((acc, session) => {
+    acc[session.book_id] = session
+    return acc
+  }, {} as Record<string, ChatSessionWithBook>)
+
+  // Merge: include books that have summaries OR chat history
+  const allBookIds = new Set([
+    ...Object.keys(summariesByBook),
+    ...Object.keys(chatSessionsByBook),
+  ])
+
+  const books = Array.from(allBookIds).map(bookId => ({
+    bookId,
+    book: summariesByBook[bookId]?.book || chatSessionsByBook[bookId]?.book,
+    summaries: summariesByBook[bookId]?.summaries || [],
+    chatSession: chatSessionsByBook[bookId] || null,
+  }))
+
+  // Sort by most recent activity
+  books.sort((a, b) => {
+    const aDate = Math.max(
+      a.chatSession?.last_message_at ? new Date(a.chatSession.last_message_at).getTime() : 0,
+      a.summaries[0]?.updated_at ? new Date(a.summaries[0].updated_at).getTime() : 0
+    )
+    const bDate = Math.max(
+      b.chatSession?.last_message_at ? new Date(b.chatSession.last_message_at).getTime() : 0,
+      b.summaries[0]?.updated_at ? new Date(b.summaries[0].updated_at).getTime() : 0
+    )
+    return bDate - aDate
+  })
 
   return (
     <Container size="xl" pt="0" pb="xl">
@@ -198,7 +287,7 @@ export default function SummariesPage() {
               </Stack>
             </Center>
           </Card>
-        ) : summaries.length === 0 ? (
+        ) : summaries.length === 0 && chatSessions.length === 0 ? (
           <Card shadow="sm" padding="xl" radius="md" withBorder>
             <Center py="xl">
               <Stack align="center" gap="md">
@@ -241,6 +330,16 @@ export default function SummariesPage() {
                           </Text>
                         </div>
                       </Group>
+
+                      {/* Chat History Row */}
+                      {bookGroup.chatSession && (
+                        <ChatHistoryRow
+                          session={bookGroup.chatSession}
+                          onResume={() => handleResumeChat(bookGroup.chatSession!)}
+                          onDelete={() => handleDeleteChat(bookGroup.chatSession!.id)}
+                          isDeleting={deletingChatId === bookGroup.chatSession!.id}
+                        />
+                      )}
 
                       {/* Individual Summaries */}
                       <Stack gap="sm" style={{ paddingLeft: '16px' }}>
@@ -323,6 +422,18 @@ export default function SummariesPage() {
                       </Group>
                     </div>
 
+                    {/* Chat History Row */}
+                    {bookGroup.chatSession && (
+                      <div style={{ padding: '0 20px' }}>
+                        <ChatHistoryRow
+                          session={bookGroup.chatSession}
+                          onResume={() => handleResumeChat(bookGroup.chatSession!)}
+                          onDelete={() => handleDeleteChat(bookGroup.chatSession!.id)}
+                          isDeleting={deletingChatId === bookGroup.chatSession!.id}
+                        />
+                      </div>
+                    )}
+
                     {/* Summaries Table */}
                     <Table.ScrollContainer minWidth={600} style={{ paddingLeft: '44px', paddingBottom: '20px' }}>
                       <Table highlightOnHover horizontalSpacing="sm" layout="fixed">
@@ -384,6 +495,13 @@ export default function SummariesPage() {
           </>
         )}
       </Stack>
+
+      <ChatWithBook
+        opened={chatOpen}
+        onClose={handleChatClose}
+        book={chatBook}
+        loadHistory={loadChatHistory}
+      />
     </Container>
   )
 }
