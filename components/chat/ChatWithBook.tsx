@@ -509,8 +509,13 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true }: Chat
                 checked={socraticModeEnabled}
                 onChange={(e) => {
                   const enabled = e.currentTarget.checked;
-                  setSocraticModeEnabled(enabled);
-                  setSocraticStartIndex(enabled ? messages.length : null);
+                  if (enabled) {
+                    // Trigger the full socratic mode flow with opening message
+                    handleSocraticSuggestionClick();
+                  } else {
+                    setSocraticModeEnabled(false);
+                    setSocraticStartIndex(null);
+                  }
                 }}
                 styles={{
                   label: { color: '#92400e', fontWeight: 600, fontSize: 11, cursor: 'pointer' },
