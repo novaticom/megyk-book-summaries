@@ -10,6 +10,7 @@ import {
   Divider,
   Group,
   Loader,
+  Modal,
   Paper,
   Portal,
   ScrollArea,
@@ -36,7 +37,7 @@ interface ChatWithBookProps {
   opened: boolean;
   onClose: () => void;
   book: Book | null;
-  loadHistory?: boolean;  // true when resuming from Collections
+  loadHistory?: boolean;  // defaults to true - auto-loads previous conversation
 }
 
 type ChatMessage = {
@@ -92,7 +93,7 @@ const getRandomSocraticPrompt = () => {
   return SOCRATIC_PROMPTS[Math.floor(Math.random() * SOCRATIC_PROMPTS.length)];
 };
 
-export function ChatWithBook({ opened, onClose, book, loadHistory = false }: ChatWithBookProps) {
+export function ChatWithBook({ opened, onClose, book, loadHistory = true }: ChatWithBookProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -102,6 +103,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = false }: Cha
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [socraticModeEnabled, setSocraticModeEnabled] = useState(false);
   // Track the message index where Socratic mode started (for exchange counting)
   const [socraticStartIndex, setSocraticStartIndex] = useState<number | null>(null);
@@ -677,13 +679,26 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = false }: Cha
                   {formatCredits(chatCost)}/message
                 </Text>
               </Group>
-              <Badge
-                size="xs"
-                variant="light"
-                color={remainingMessages > 5 ? 'blue' : remainingMessages > 0 ? 'yellow' : 'red'}
-              >
-                {remainingMessages} messages left
-              </Badge>
+              <Group gap="xs">
+                {messages.length > 0 && (
+                  <Text
+                    size="xs"
+                    c="blue"
+                    fw={500}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setShowClearConfirm(true)}
+                  >
+                    Clear Chat
+                  </Text>
+                )}
+                <Badge
+                  size="xs"
+                  variant="light"
+                  color={remainingMessages > 5 ? 'blue' : remainingMessages > 0 ? 'yellow' : 'red'}
+                >
+                  {remainingMessages} messages left
+                </Badge>
+              </Group>
             </Group>
             {!canAffordChat && (
               <Group gap={4} mt={4}>
@@ -737,6 +752,38 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = false }: Cha
         currentBalance={creditBalance?.current_balance || 0}
         actionName="chat message"
       />
+      <Modal
+        opened={showClearConfirm}
+        onClose={() => setShowClearConfirm(false)}
+        withCloseButton={false}
+        centered
+        size="sm"
+      >
+        <Text fw={700} size="lg" ta="center" mb="md">
+          Clear Chat
+        </Text>
+        <Text size="sm" ta="center" mb="lg">
+          This will clear your chat history with this book.
+          <br /><br />
+          You can always restore your chat history by opening this chat again, or from the "My Collections" page.
+        </Text>
+        <Group justify="center" gap="sm">
+          <Button variant="default" onClick={() => setShowClearConfirm(false)}>
+            Cancel
+          </Button>
+          <Button
+            color="blue"
+            onClick={() => {
+              setMessages([]);
+              setSocraticModeEnabled(false);
+              setSocraticStartIndex(null);
+              setShowClearConfirm(false);
+            }}
+          >
+            OK
+          </Button>
+        </Group>
+      </Modal>
       </>
     </Portal>
   );
