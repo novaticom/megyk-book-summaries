@@ -86,7 +86,6 @@ const SOCRATIC_PROMPTS = [
   'Challenge my thinking on this topic',
   'Help me discover what\'s holding me back',
   'Guide me to find my own answers',
-  'Ask me questions to deepen my understanding',
 ];
 
 const getRandomSocraticPrompt = () => {
