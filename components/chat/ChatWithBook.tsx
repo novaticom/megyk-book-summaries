@@ -86,7 +86,6 @@ const SOCRATIC_PROMPTS = [
   'Challenge my thinking on this topic',
   'Help me discover what\'s holding me back',
   'Guide me to find my own answers',
-  'Ask me questions to deepen my understanding',
 ];
 
 const getRandomSocraticPrompt = () => {
@@ -259,7 +258,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true }: Chat
     }
   }, [opened]);
 
-  const sendMessageWithText = async (text: string) => {
+  const sendMessageWithText = async (text: string, forceSocraticMode?: boolean) => {
     if (!book || !text.trim() || isSending) return;
 
     const messageText = text.trim();
@@ -267,7 +266,8 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true }: Chat
     setErrorMessage(null);
 
     // Calculate Socratic mode state for the API
-    const inSocraticMode = socraticModeEnabled;
+    // forceSocraticMode handles the case when we just enabled socratic mode but state hasn't updated yet
+    const inSocraticMode = forceSocraticMode ?? socraticModeEnabled;
     const socraticExchangeCount = inSocraticMode && socraticStartIndex !== null
       ? messages.slice(socraticStartIndex).filter(m => m.role === 'user').length + 1
       : inSocraticMode ? 1 : 0;
@@ -457,7 +457,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true }: Chat
     // Enable Socratic mode and send the opening message
     setSocraticModeEnabled(true);
     setSocraticStartIndex(messages.length);
-    sendMessageWithText(socraticPrompt);
+    sendMessageWithText(socraticPrompt, true);  // Force socratic endpoint for first message
   };
 
   if (!opened) return null;
@@ -509,8 +509,13 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true }: Chat
                 checked={socraticModeEnabled}
                 onChange={(e) => {
                   const enabled = e.currentTarget.checked;
-                  setSocraticModeEnabled(enabled);
-                  setSocraticStartIndex(enabled ? messages.length : null);
+                  if (enabled) {
+                    // Trigger the full socratic mode flow with opening message
+                    handleSocraticSuggestionClick();
+                  } else {
+                    setSocraticModeEnabled(false);
+                    setSocraticStartIndex(null);
+                  }
                 }}
                 styles={{
                   label: { color: '#92400e', fontWeight: 600, fontSize: 11, cursor: 'pointer' },
