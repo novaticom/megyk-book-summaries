@@ -103,7 +103,6 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
   // History confirmation modal state
   const [showHistoryConfirmation, setShowHistoryConfirmation] = useState(false);
   const [pendingHistoryMessages, setPendingHistoryMessages] = useState<ChatMessage[]>([]);
@@ -707,7 +706,11 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
                     c="blue"
                     fw={500}
                     style={{ cursor: 'pointer' }}
-                    onClick={() => setShowClearConfirm(true)}
+                    onClick={() => {
+                      setMessages([]);
+                      setSocraticModeEnabled(false);
+                      setSocraticStartIndex(null);
+                    }}
                   >
                     Clear Chat
                   </Text>
@@ -773,38 +776,6 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
         currentBalance={creditBalance?.current_balance || 0}
         actionName="chat message"
       />
-      <Modal
-        opened={showClearConfirm}
-        onClose={() => setShowClearConfirm(false)}
-        withCloseButton={false}
-        centered
-        size="sm"
-      >
-        <Text fw={700} size="lg" ta="center" mb="md">
-          Clear Chat
-        </Text>
-        <Text size="sm" ta="center" mb="lg">
-          This will clear your chat history with this book.
-          <br /><br />
-          You can always restore your chat history by opening this chat again, or from the "My Collections" page.
-        </Text>
-        <Group justify="center" gap="sm">
-          <Button variant="default" onClick={() => setShowClearConfirm(false)}>
-            Cancel
-          </Button>
-          <Button
-            color="blue"
-            onClick={() => {
-              setMessages([]);
-              setSocraticModeEnabled(false);
-              setSocraticStartIndex(null);
-              setShowClearConfirm(false);
-            }}
-          >
-            OK
-          </Button>
-        </Group>
-      </Modal>
       <Modal
         opened={showHistoryConfirmation}
         onClose={() => {
