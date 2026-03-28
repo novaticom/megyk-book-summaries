@@ -487,6 +487,7 @@ export default function SummariesPage() {
         onClose={handleChatClose}
         book={chatBook}
         loadHistory={loadChatHistory}
+        skipHistoryConfirmation={loadChatHistory}  // Skip confirmation when resuming from My Collections
       />
     </Container>
   )

@@ -38,6 +38,7 @@ interface ChatWithBookProps {
   onClose: () => void;
   book: Book | null;
   loadHistory?: boolean;  // defaults to true - auto-loads previous conversation
+  skipHistoryConfirmation?: boolean;  // if true, auto-load history without asking (e.g., from My Collections resume)
 }
 
 type ChatMessage = {
@@ -92,7 +93,7 @@ const getRandomSocraticPrompt = () => {
   return SOCRATIC_PROMPTS[Math.floor(Math.random() * SOCRATIC_PROMPTS.length)];
 };
 
-export function ChatWithBook({ opened, onClose, book, loadHistory = true }: ChatWithBookProps) {
+export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHistoryConfirmation = false }: ChatWithBookProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -103,6 +104,9 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true }: Chat
   const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  // History confirmation modal state
+  const [showHistoryConfirmation, setShowHistoryConfirmation] = useState(false);
+  const [pendingHistoryMessages, setPendingHistoryMessages] = useState<ChatMessage[]>([]);
   const [socraticModeEnabled, setSocraticModeEnabled] = useState(false);
   // Track the message index where Socratic mode started (for exchange counting)
   const [socraticStartIndex, setSocraticStartIndex] = useState<number | null>(null);
@@ -128,12 +132,16 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true }: Chat
       setMessages([]);
       setSuggestions([]);
       setSocraticStartIndex(null);
+      setShowHistoryConfirmation(false);
+      setPendingHistoryMessages([]);
       suggestionsAbortRef.current?.abort();
       suggestionsAbortRef.current = null;
       return;
     }
     setMessages([]);
     setSocraticStartIndex(null);
+    setShowHistoryConfirmation(false);
+    setPendingHistoryMessages([]);
   }, [bookId]);
 
   const fetchCreditBalance = useCallback(async () => {
@@ -159,7 +167,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true }: Chat
     }
   }, [opened, fetchCreditBalance]);
 
-  // Load chat history when resuming from Collections
+  // Load chat history when resuming - with optional confirmation
   useEffect(() => {
     if (!opened || !loadHistory || !bookId) return;
 
@@ -176,7 +184,15 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true }: Chat
               role: msg.role,
               content: msg.content,
             }));
-            setMessages(loadedMessages);
+
+            if (skipHistoryConfirmation) {
+              // From My Collections - load directly without asking
+              setMessages(loadedMessages);
+            } else {
+              // From other pages - show confirmation modal
+              setPendingHistoryMessages(loadedMessages);
+              setShowHistoryConfirmation(true);
+            }
           }
         }
       } catch (error) {
@@ -187,7 +203,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true }: Chat
     };
 
     fetchHistory();
-  }, [opened, loadHistory, bookId]);
+  }, [opened, loadHistory, bookId, skipHistoryConfirmation]);
 
   useEffect(() => {
     if (!opened || !bookId) return;
@@ -786,6 +802,51 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true }: Chat
             }}
           >
             OK
+          </Button>
+        </Group>
+      </Modal>
+      <Modal
+        opened={showHistoryConfirmation}
+        onClose={() => {
+          // Dismiss = Start Fresh (don't load history)
+          setShowHistoryConfirmation(false);
+          setPendingHistoryMessages([]);
+        }}
+        withCloseButton={false}
+        centered
+        size="sm"
+        closeOnClickOutside={false}
+        closeOnEscape={false}
+      >
+        <Text fw={700} size="lg" ta="center" mb="md">
+          Continue Previous Chat?
+        </Text>
+        <Text size="sm" ta="center" mb="lg">
+          You have recently chatted with this book.
+          <br /><br />
+          Would you like to continue where you left off, or start fresh?
+        </Text>
+        <Group justify="center" gap="sm">
+          <Button
+            variant="default"
+            onClick={() => {
+              // Start Fresh - clear pending and start new conversation
+              setShowHistoryConfirmation(false);
+              setPendingHistoryMessages([]);
+            }}
+          >
+            Start Fresh
+          </Button>
+          <Button
+            color="blue"
+            onClick={() => {
+              // Continue - load the pending history messages
+              setMessages(pendingHistoryMessages);
+              setShowHistoryConfirmation(false);
+              setPendingHistoryMessages([]);
+            }}
+          >
+            Continue
           </Button>
         </Group>
       </Modal>
