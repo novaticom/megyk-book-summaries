@@ -788,6 +788,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
         size="sm"
         closeOnClickOutside={false}
         closeOnEscape={false}
+        zIndex={1100}
       >
         <Text fw={700} size="lg" ta="center" mb="md">
           Continue Previous Chat?
