@@ -11,7 +11,7 @@ import {
   Group,
   Box,
 } from '@mantine/core';
-import { IconArrowRight, IconMessage } from '@tabler/icons-react';
+import { IconArrowRight } from '@tabler/icons-react';
 
 export default function Home() {
   const router = useRouter();
@@ -38,7 +38,11 @@ export default function Home() {
         <Center style={{ width: '100%' }}>
           <Stack align="center" gap="xl" ta="center">
             <Stack gap="md" align="center">
-              <IconMessage size={64} stroke={1.5} color="#2563EB" />
+              <img
+                src="/chat-with-book/chat-with-book.png"
+                alt="Chat with book"
+                style={{ height: 80, width: 'auto' }}
+              />
               <Title order={1} size="3rem" fw={800} c="#000000">
                 Chat with Any Book
               </Title>
