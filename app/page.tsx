@@ -11,7 +11,7 @@ import {
   Group,
   Box,
 } from '@mantine/core';
-import { IconArrowRight, IconSparkles } from '@tabler/icons-react';
+import { IconArrowRight, IconMessage } from '@tabler/icons-react';
 
 export default function Home() {
   const router = useRouter();
@@ -38,13 +38,13 @@ export default function Home() {
         <Center style={{ width: '100%' }}>
           <Stack align="center" gap="xl" ta="center">
             <Stack gap="md" align="center">
-              <IconSparkles size={64} stroke={1.5} color="#2563EB" />
+              <IconMessage size={64} stroke={1.5} color="#2563EB" />
               <Title order={1} size="3rem" fw={800} c="#000000">
-                Book Summaries
+                Chat with Any Book
               </Title>
               <Text size="xl" c="#374151" maw={600}>
-                Discover personalized AI-generated book summaries tailored just for you. 
-                Dive into thousands of books in minutes, not hours.
+                Have a conversation with your favorite books. Ask questions, explore ideas,
+                and get instant answers powered by AI.
               </Text>
             </Stack>
             
@@ -53,8 +53,8 @@ export default function Home() {
                 size="lg"
                 variant="filled"
                 rightSection={<IconArrowRight size={20} />}
-                onClick={() => router.push('/auth/signin')}
-                style={{ 
+                onClick={() => router.push('/auth/signup')}
+                style={{
                   fontWeight: 600,
                   backgroundColor: '#2563EB',
                   color: '#FFFFFF',
