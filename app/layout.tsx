@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Inter } from "next/font/google";
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 import { GoogleTagManager } from '@next/third-parties/google';
 import { ColorSchemeScript, MantineProvider } from '@mantine/core';
 import { ModalsProvider } from '@mantine/modals';
@@ -33,13 +35,16 @@ export const viewport: Viewport = {
   themeColor: "#2563EB",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <ColorSchemeScript forceColorScheme="light" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -49,6 +54,7 @@ export default function RootLayout({
         <PwaModeClass />
         <div className="pwa-standalone-indicator" aria-hidden="true" />
         <GoogleTagManager gtmId="GTM-WNR6MV8H" />
+        <NextIntlClientProvider locale={locale} messages={messages}>
         <MantineProvider theme={theme} forceColorScheme="light">
           <ModalsProvider>
             <Notifications />
@@ -73,6 +79,7 @@ export default function RootLayout({
             <InstallBanner />
           </ModalsProvider>
         </MantineProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
