@@ -1,6 +1,7 @@
 'use client'
 
 import { Button, Group, Text, Box } from '@mantine/core'
+import { useTranslations, useLocale } from 'next-intl'
 import { IconMessage, IconTrash } from '@tabler/icons-react'
 import { ChatSessionWithBook } from '@/lib/types/chat'
 
@@ -17,9 +18,13 @@ export function ChatHistoryRow({
   onDelete,
   isDeleting = false
 }: ChatHistoryRowProps) {
+  const t = useTranslations('chatHistory')
+  const tCard = useTranslations('chatCard')
+  const locale = useLocale()
+
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'No messages yet'
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return tCard('noMessages')
+    return new Date(dateString).toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
     })
@@ -40,15 +45,15 @@ export function ChatHistoryRow({
           <IconMessage size={20} style={{ color: '#6b7280', flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
             <Text fw={500} c="dark" size="sm">
-              Chat History
+              {t('title')}
             </Text>
             <Group gap="xs">
               <Text size="xs" c="dimmed">
-                {session.message_count} {session.message_count === 1 ? 'message' : 'messages'}
+                {t('messageCount', { count: session.message_count })}
               </Text>
               <Text size="xs" c="dimmed">•</Text>
               <Text size="xs" c="dimmed">
-                Last: {formatDate(session.last_message_at)}
+                {t('lastMessage', { date: formatDate(session.last_message_at) })}
               </Text>
             </Group>
           </div>
@@ -61,7 +66,7 @@ export function ChatHistoryRow({
             color="blue"
             onClick={onResume}
           >
-            Resume Chat
+            {t('resumeChat')}
           </Button>
           <Button
             size="xs"

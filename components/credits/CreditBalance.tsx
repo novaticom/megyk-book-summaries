@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import { Badge, Group, Text, Tooltip, Loader } from '@mantine/core'
 import { IconCoins } from '@tabler/icons-react'
 import { formatCredits, CreditBalance as CreditBalanceType } from '@/lib/types/credits'
@@ -11,6 +12,7 @@ interface CreditBalanceProps {
 }
 
 export function CreditBalance({ compact = false, showTooltip = true }: CreditBalanceProps) {
+  const t = useTranslations('credits')
   const [balance, setBalance] = useState<CreditBalanceType | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -58,7 +60,7 @@ export function CreditBalance({ compact = false, showTooltip = true }: CreditBal
         size={compact ? 'md' : 'lg'}
         leftSection={<Loader size={12} color="gray" />}
       >
-        Loading...
+        {t('loading')}
       </Badge>
     )
   }
@@ -71,7 +73,7 @@ export function CreditBalance({ compact = false, showTooltip = true }: CreditBal
         size={compact ? 'md' : 'lg'}
         leftSection={<IconCoins size={14} />}
       >
-        Error
+        {t('error')}
       </Badge>
     )
   }
@@ -96,12 +98,12 @@ export function CreditBalance({ compact = false, showTooltip = true }: CreditBal
     <Tooltip
       label={
         <div>
-          <Text size="sm" fw={600}>Your Megyk Credits</Text>
+          <Text size="sm" fw={600}>{t('tooltip.title')}</Text>
           <Text size="xs" c="dimmed">
-            Lifetime earned: {formatCredits(balance.lifetime_earned)}
+            {t('tooltip.lifetimeEarned', { amount: formatCredits(balance.lifetime_earned) })}
           </Text>
           <Text size="xs" c="dimmed">
-            Lifetime spent: {formatCredits(balance.lifetime_spent)}
+            {t('tooltip.lifetimeSpent', { amount: formatCredits(balance.lifetime_spent) })}
           </Text>
         </div>
       }

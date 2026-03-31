@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Container, Title, Text, Stack, Card, Table, Button, Badge, Loader, Alert, SimpleGrid, Group, Box, Pagination, Center, UnstyledButton, Image } from '@mantine/core'
 import { IconBook, IconAlertCircle, IconChevronUp, IconChevronDown, IconSelector } from '@tabler/icons-react'
 import { Book } from '@/lib/types/books'
@@ -70,6 +71,7 @@ function paginateData(data: Book[], page: number, pageSize: number) {
 }
 
 export default function LibraryPage() {
+  const t = useTranslations('library')
   const [allBooks, setAllBooks] = useState<Book[]>([]) // All data from API
   const [sortedData, setSortedData] = useState<Book[]>([]) // Sorted data
   const [displayedBooks, setDisplayedBooks] = useState<Book[]>([]) // Paginated data for display

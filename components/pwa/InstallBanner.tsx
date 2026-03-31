@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Paper, Group, Text, Button, CloseButton, Stack, Box } from '@mantine/core';
 import { IconDownload, IconDeviceMobile } from '@tabler/icons-react';
 import { useInstallPrompt } from './useInstallPrompt';
 
 export function InstallBanner() {
+  const t = useTranslations('pwa');
   const { isInstallable, isIOS, install, dismiss, isDismissed, isInstalled } = useInstallPrompt();
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
@@ -40,21 +42,21 @@ export function InstallBanner() {
         }}
       >
         <Group justify="space-between" align="flex-start" mb="xs">
-          <Text fw={600} size="sm">Install Megyk Books</Text>
+          <Text fw={600} size="sm">{t('banner.title')}</Text>
           <CloseButton size="sm" onClick={() => setShowIOSInstructions(false)} />
         </Group>
         <Stack gap="xs">
           <Text size="sm" c="dimmed">
-            To install on iOS:
+            {t('banner.iosInstructions')}
           </Text>
           <Text size="sm">
-            1. Tap the <strong>Share</strong> button <Box component="span" style={{ display: 'inline-block', border: '1px solid #ccc', borderRadius: 4, padding: '0 4px', fontSize: 12 }}>↑</Box>
+            {t('banner.iosStep1')} <Box component="span" style={{ display: 'inline-block', border: '1px solid #ccc', borderRadius: 4, padding: '0 4px', fontSize: 12 }}>↑</Box>
           </Text>
           <Text size="sm">
-            2. Scroll down and tap <strong>&quot;Add to Home Screen&quot;</strong>
+            {t('banner.iosStep2')}
           </Text>
           <Button variant="light" size="xs" mt="xs" onClick={dismiss}>
-            Got it
+            {t('banner.gotIt')}
           </Button>
         </Stack>
       </Paper>
@@ -81,7 +83,7 @@ export function InstallBanner() {
         <Group gap="sm" wrap="nowrap">
           <IconDeviceMobile size={24} style={{ flexShrink: 0, opacity: 0.7 }} />
           <Text size="sm" lineClamp={2}>
-            Install app for offline access
+            {t('banner.installPrompt')}
           </Text>
         </Group>
         <Group gap="xs" wrap="nowrap">
@@ -91,7 +93,7 @@ export function InstallBanner() {
             leftSection={<IconDownload size={14} />}
             onClick={handleInstall}
           >
-            Install
+            {t('banner.install')}
           </Button>
           <CloseButton size="sm" onClick={dismiss} />
         </Group>

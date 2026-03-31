@@ -1,10 +1,12 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Paper, Group, Text, Button, Stack, ThemeIcon, Badge, Box } from '@mantine/core';
 import { IconDownload, IconCheck, IconDeviceMobile } from '@tabler/icons-react';
 import { useInstallPrompt } from './useInstallPrompt';
 
 export function InstallAppSection() {
+  const t = useTranslations('pwa');
   const { isInstallable, isInstalled, isIOS, install } = useInstallPrompt();
 
   const handleInstall = async () => {
@@ -22,17 +24,17 @@ export function InstallAppSection() {
           </ThemeIcon>
           <Stack gap={4}>
             <Group gap="xs">
-              <Text fw={600}>Install App</Text>
+              <Text fw={600}>{t('section.title')}</Text>
               {isInstalled && (
                 <Badge color="green" size="sm" variant="light" leftSection={<IconCheck size={12} />}>
-                  Installed
+                  {t('section.installed')}
                 </Badge>
               )}
             </Group>
             <Text size="sm" c="dimmed">
               {isInstalled
-                ? 'Megyk Books is installed on your device'
-                : 'Install for offline access to your summaries'}
+                ? t('section.installedMessage')
+                : t('section.installMessage')}
             </Text>
           </Stack>
         </Group>
@@ -44,7 +46,7 @@ export function InstallAppSection() {
             onClick={handleInstall}
             disabled={!isInstallable}
           >
-            Install
+            {t('banner.install')}
           </Button>
         )}
       </Group>
@@ -52,14 +54,14 @@ export function InstallAppSection() {
       {!isInstalled && isIOS && (
         <Box mt="md" p="sm" style={{ backgroundColor: 'var(--mantine-color-gray-0)', borderRadius: 8 }}>
           <Text size="sm" fw={500} mb="xs">
-            To install on iOS:
+            {t('section.iosInstructions')}
           </Text>
           <Stack gap={4}>
             <Text size="sm" c="dimmed">
-              1. Tap the <strong>Share</strong> button in Safari <Box component="span" style={{ display: 'inline-block', border: '1px solid #ccc', borderRadius: 4, padding: '0 4px', fontSize: 12 }}>↑</Box>
+              {t('section.iosStep1')} <Box component="span" style={{ display: 'inline-block', border: '1px solid #ccc', borderRadius: 4, padding: '0 4px', fontSize: 12 }}>↑</Box>
             </Text>
             <Text size="sm" c="dimmed">
-              2. Scroll down and tap <strong>&quot;Add to Home Screen&quot;</strong>
+              {t('section.iosStep2')}
             </Text>
           </Stack>
         </Box>
@@ -67,7 +69,7 @@ export function InstallAppSection() {
 
       {!isInstalled && !isIOS && !isInstallable && (
         <Text size="xs" c="dimmed" mt="sm">
-          Open this page in Chrome or Safari on your mobile device to install
+          {t('section.openOnMobile')}
         </Text>
       )}
     </Paper>
