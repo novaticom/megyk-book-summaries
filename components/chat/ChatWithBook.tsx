@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   ActionIcon,
   Badge,
@@ -80,20 +81,8 @@ const getChatReply = (payload: unknown) => {
   return '';
 };
 
-// Socratic mode prompts - randomly selected when chat opens
-const SOCRATIC_PROMPTS = [
-  'Help me apply this to a specific situation',
-  'Coach me through implementing this',
-  'Challenge my thinking on this topic',
-  'Help me discover what\'s holding me back',
-  'Guide me to find my own answers',
-];
-
-const getRandomSocraticPrompt = () => {
-  return SOCRATIC_PROMPTS[Math.floor(Math.random() * SOCRATIC_PROMPTS.length)];
-};
-
 export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHistoryConfirmation = false }: ChatWithBookProps) {
+  const t = useTranslations('chat');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -110,21 +99,30 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
   // Track the message index where Socratic mode started (for exchange counting)
   const [socraticStartIndex, setSocraticStartIndex] = useState<number | null>(null);
   // Randomly selected Socratic prompt (changes each time chat opens)
-  const [socraticPrompt, setSocraticPrompt] = useState<string>(getRandomSocraticPrompt);
+  const [socraticPrompt, setSocraticPrompt] = useState('');
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const suggestionsAbortRef = useRef<AbortController | null>(null);
   const bookId = book?.id;
   const isMobile = useMediaQuery('(max-width: 576px)', true, { getInitialValueInEffect: false });
 
+  // Socratic prompts from translation
+  const socraticPrompts = useMemo(() => [
+    t('suggestions.apply'),
+    t('suggestions.implement'),
+    t('suggestions.challenge'),
+    t('suggestions.holdingBack'),
+    t('suggestions.findAnswers'),
+  ], [t]);
+
   const chatCost = getChatMessageCreditCost();
   const remainingMessages = creditBalance ? calculateRemainingChatMessages(creditBalance.current_balance) : 0;
   const canAffordChat = creditBalance ? creditBalance.current_balance >= chatCost : false;
 
   const headerTitle = useMemo(() => {
-    if (!book) return 'Chat with book';
-    return `Chat with "${getDisplayTitle(book.title) || book.title}"`;
-  }, [book]);
+    if (!book) return t('title');
+    return t('titleWithBook', { title: getDisplayTitle(book.title) || book.title });
+  }, [book, t]);
 
   useEffect(() => {
     if (!bookId) {
@@ -162,9 +160,9 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
       setShowInsufficientModal(false);
       setSocraticModeEnabled(false);
       setSocraticStartIndex(null);
-      setSocraticPrompt(getRandomSocraticPrompt());
+      setSocraticPrompt(socraticPrompts[Math.floor(Math.random() * socraticPrompts.length)]);
     }
-  }, [opened, fetchCreditBalance]);
+  }, [opened, fetchCreditBalance, socraticPrompts]);
 
   // Load chat history when resuming - with optional confirmation
   useEffect(() => {
@@ -516,10 +514,10 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
             </Tooltip>
           </Group>
           <Group gap="xs" wrap="nowrap" align="center">
-            <Tooltip label="Socratic mode guides you to insights through questions" withArrow>
+            <Tooltip label={t('socraticDescription')} withArrow>
               <Switch
                 size="xs"
-                label="Socratic"
+                label={t('socratic')}
                 labelPosition="left"
                 checked={socraticModeEnabled}
                 onChange={(e) => {
@@ -554,7 +552,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
               <Group gap={8} wrap="wrap">
                 {isLoadingSuggestions && (
                   <Text size="xs" c="dimmed">
-                    Loading Suggestions…
+                    {t('loadingSuggestions')}
                   </Text>
                 )}
                 {suggestions.map((suggestion) => (
@@ -587,7 +585,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
                   radius="xl"
                   onClick={handleSocraticSuggestionClick}
                   disabled={isSending || socraticModeEnabled}
-                  leftSection={<Badge size="xs" color="orange" variant="filled" style={{ fontSize: 9, padding: '2px 4px' }}>NEW</Badge>}
+                  leftSection={<Badge size="xs" color="orange" variant="filled" style={{ fontSize: 9, padding: '2px 4px' }}>{t('new')}</Badge>}
                   style={
                     {
                       fontWeight: 500,
@@ -600,7 +598,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
                     } as any
                   }
                 >
-                  Socratic Mode: {socraticPrompt}
+                  {t('socraticMode', { prompt: socraticPrompt })}
                 </Button>
               </Group>
             </Box>
@@ -610,7 +608,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
               <Group gap="xs">
                 <Loader size="xs" />
                 <Text size="sm" c="dimmed">
-                  Loading chat history...
+                  {t('loadingHistory')}
                 </Text>
               </Group>
             </Box>
@@ -618,7 +616,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
           {messages.length === 0 && !isSending && !isLoadingHistory && (
             <Box py="md">
               <Text size="sm" c="dimmed">
-                Ask a question about this book and I'll respond here.
+                {t('placeholder')}
               </Text>
             </Box>
           )}
@@ -651,7 +649,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
                   {isStreamingEmpty ? (
                     <Group gap={8} align="center">
                       <Loader size="xs" color="blue" />
-                      <Text size="md" c="dimmed">Thinking...</Text>
+                      <Text size="md" c="dimmed">{t('thinking')}</Text>
                     </Group>
                   ) : (
                     <Text size="md">{renderWithLineBreaks(message.content)}</Text>
@@ -675,7 +673,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
                 }}
               >
                 <Loader size="xs" color="blue" />
-                <Text size="md">Thinking...</Text>
+                <Text size="md">{t('thinking')}</Text>
               </Box>
             </Box>
           )}
@@ -696,7 +694,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
               <Group gap={4}>
                 <IconCoins size={12} style={{ color: canAffordChat ? '#2563EB' : '#dc2626' }} />
                 <Text size="xs" c={canAffordChat ? 'dimmed' : 'red'}>
-                  {formatCredits(chatCost)}/message
+                  {t('costPerMessage', { cost: formatCredits(chatCost) })}
                 </Text>
               </Group>
               <Group gap="xs">
@@ -712,7 +710,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
                       setSocraticStartIndex(null);
                     }}
                   >
-                    Clear Chat
+                    {t('clearChat')}
                   </Text>
                 )}
                 <Badge
@@ -720,7 +718,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
                   variant="light"
                   color={remainingMessages > 5 ? 'blue' : remainingMessages > 0 ? 'yellow' : 'red'}
                 >
-                  {remainingMessages} messages left
+                  {t('remainingMessages', { count: remainingMessages })}
                 </Badge>
               </Group>
             </Group>
@@ -734,7 +732,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
                   style={{ cursor: 'pointer' }}
                   onClick={() => setShowInsufficientModal(true)}
                 >
-                  Invite friends to earn {REFERRAL_REWARDS.referrer_bonus.toLocaleString()} MC per referral
+                  {t('earnMoreCredits', { bonus: REFERRAL_REWARDS.referrer_bonus.toLocaleString() })}
                 </Text>
               </Group>
             )}
@@ -748,10 +746,10 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
             onChange={(event) => setInput(event.currentTarget.value)}
             placeholder={
               !book
-                ? 'Pick a book to chat'
+                ? t('pickBook')
                 : !canAffordChat
-                ? 'Insufficient credits'
-                : 'Type your message...'
+                ? t('insufficientCredits')
+                : t('inputPlaceholder')
             }
             disabled={!book || isSending || !canAffordChat}
             onKeyDown={handleKeyDown}
@@ -774,7 +772,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
         onClose={() => setShowInsufficientModal(false)}
         requiredCredits={chatCost}
         currentBalance={creditBalance?.current_balance || 0}
-        actionName="chat message"
+        actionName={t('insufficientCredits')}
       />
       <Modal
         opened={showHistoryConfirmation}
@@ -791,12 +789,10 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
         zIndex={1100}
       >
         <Text fw={700} size="lg" ta="center" mb="md">
-          Continue Previous Chat?
+          {t('continuePrevious.title')}
         </Text>
         <Text size="sm" ta="center" mb="lg">
-          You have recently chatted with this book.
-          <br /><br />
-          Would you like to continue where you left off, or start fresh?
+          {t('continuePrevious.description')}
         </Text>
         <Group justify="center" gap="sm">
           <Button
@@ -807,7 +803,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
               setPendingHistoryMessages([]);
             }}
           >
-            Start Fresh
+            {t('continuePrevious.startFresh')}
           </Button>
           <Button
             color="blue"
@@ -818,7 +814,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
               setPendingHistoryMessages([]);
             }}
           >
-            Continue
+            {t('continuePrevious.continue')}
           </Button>
         </Group>
       </Modal>

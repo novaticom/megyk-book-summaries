@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   Stepper,
   Button,
@@ -26,6 +27,7 @@ import {
 import styles from './OnboardingWizard.module.css'
 
 export function OnboardingWizard() {
+  const t = useTranslations('onboarding')
   const router = useRouter()
   const [active, setActive] = useState(0)
   const [styleIndex, setStyleIndex] = useState(
@@ -63,12 +65,12 @@ export function OnboardingWizard() {
         router.push('/dashboard')
       } else {
         const errorData = await response.json()
-        setError(errorData.error || 'Failed to save preferences')
+        setError(errorData.error || t('saveError'))
         setSaving(false)
       }
     } catch (err) {
       console.error('Error saving preferences:', err)
-      setError('An unexpected error occurred')
+      setError(t('unexpectedError'))
       setSaving(false)
     }
   }
@@ -79,42 +81,42 @@ export function OnboardingWizard() {
         <Stack gap="xl">
           <div>
             <Title order={1} mb="xs">
-              Welcome to Megyk Book Summaries
+              {t('title')}
             </Title>
             <Text size="lg" c="dimmed">
-              Let's personalize your reading experience
+              {t('subtitle')}
             </Text>
           </div>
 
           {error && (
-            <Alert icon={<IconAlertCircle size={16} />} color="red" title="Error">
+            <Alert icon={<IconAlertCircle size={16} />} color="red">
               {error}
             </Alert>
           )}
 
           <Stepper active={active} onStepClick={setActive} className={styles.mobileStepper}>
-            <Stepper.Step label="Welcome" description="Get started">
+            <Stepper.Step label={t('welcome.step')} description={t('welcome.button')}>
               <Stack gap="md" mt="xl">
                 <Text size="lg">
-                  Thank you for joining Megyk Book Summaries! We're excited to help you discover and understand books faster.
+                  {t('welcome.body')}
                 </Text>
                 <Text>
-                  In the next steps, we'll ask you a few questions to personalize your summary experience.
+                  {t('welcome.detail')}
                 </Text>
                 <Text fw={500}>
-                  This will only take a minute.
+                  {t('welcome.note')}
                 </Text>
               </Stack>
             </Stepper.Step>
 
-            <Stepper.Step label="Style" description="Choose format">
+            <Stepper.Step label={t('style.step')} description={t('style.button')}>
               <Stack gap="md" mt="xl">
                 <div>
                   <Text size="lg" fw={600} mb="sm">
-                    How would you like your summaries presented?
+                    {t('style.title')}
                   </Text>
                   <Text size="sm" c="dimmed" mb="lg">
-                    You can always change this later in your preferences
+                    {t('style.hint')}
                   </Text>
                 </div>
 
@@ -133,7 +135,7 @@ export function OnboardingWizard() {
                         }))}
                         size="lg"
                         styles={{
-                          markLabel: { 
+                          markLabel: {
                             marginTop: 8,
                             fontSize: '0.75rem',
                             whiteSpace: 'nowrap'
@@ -162,14 +164,14 @@ export function OnboardingWizard() {
               </Stack>
             </Stepper.Step>
 
-            <Stepper.Step label="Length" description="Choose depth">
+            <Stepper.Step label={t('length.step')} description={t('length.button')}>
               <Stack gap="md" mt="xl">
                 <div>
                   <Text size="lg" fw={600} mb="sm">
-                    How detailed should your summaries be?
+                    {t('length.title')}
                   </Text>
                   <Text size="sm" c="dimmed" mb="lg">
-                    You can always change this later in your preferences
+                    {t('length.hint')}
                   </Text>
                 </div>
 
@@ -188,7 +190,7 @@ export function OnboardingWizard() {
                         }))}
                         size="lg"
                         styles={{
-                          markLabel: { 
+                          markLabel: {
                             marginTop: 8,
                             fontSize: '0.75rem',
                             whiteSpace: 'nowrap'
@@ -220,9 +222,9 @@ export function OnboardingWizard() {
             <Stepper.Completed>
               <Stack gap="md" mt="xl" align="center">
                 <IconCheck size={48} color="green" />
-                <Title order={2}>All Set!</Title>
+                <Title order={2}>{t('complete.step')}</Title>
                 <Text size="lg" ta="center">
-                  Your preferences have been saved. You're ready to start exploring book summaries.
+                  {t('complete.description')}
                 </Text>
               </Stack>
             </Stepper.Completed>
@@ -230,15 +232,15 @@ export function OnboardingWizard() {
 
           <Group justify="space-between" mt="xl">
             <Button variant="default" onClick={prevStep} disabled={active === 0}>
-              Back
+              {t('back')}
             </Button>
             {active < 2 ? (
               <Button onClick={nextStep}>
-                Next
+                {t('next')}
               </Button>
             ) : (
               <Button onClick={handleComplete} loading={saving}>
-                Complete & Continue
+                {t('completeButton')}
               </Button>
             )}
           </Group>
