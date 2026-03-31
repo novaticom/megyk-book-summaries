@@ -17,8 +17,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Megyk Books - Personalized AI-Generated Summaries",
-  description: "Get personalized book summaries tailored to your reading preferences",
+  title: "Megyk Books - Personalized AI-Generated Essences",
+  description: "Get personalized book essences tailored to your reading preferences",
   applicationName: "Megyk Books",
   appleWebApp: {
     capable: true,
