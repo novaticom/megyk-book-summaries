@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Carousel } from '@mantine/carousel';
 import type { EmblaCarouselType } from 'embla-carousel';
 import {
@@ -65,6 +66,7 @@ const BookCard = memo(function BookCard({
   onGenerateSummary,
   onOpenChat,
 }: BookCardProps) {
+  const t = useTranslations('carousel');
   return (
     <Card
       className={styles.bookCard}
@@ -115,7 +117,7 @@ const BookCard = memo(function BookCard({
                     }}
                     id={isFirstCard ? 'tour-book-get-summary' : undefined}
                   >
-                    Get Summary
+                    {t('getSummary')}
                   </Button>
                   <Button
                     variant="light"
@@ -127,13 +129,13 @@ const BookCard = memo(function BookCard({
                       color: '#000000',
                     }}
                   >
-                    Custom
+                    {t('custom')}
                   </Button>
                   <ActionIcon
                     variant="light"
                     size="lg"
                     onClick={() => onOpenChat(book)}
-                    aria-label="Chat with book"
+                    aria-label={t('chatWithBook')}
                     style={{ backgroundColor: 'rgba(243, 244, 246, 0.92)', color: '#2563EB' }}
                     id={isFirstCard ? 'tour-book-chat' : undefined}
                   >
@@ -159,13 +161,13 @@ const BookCard = memo(function BookCard({
                     }}
                     id={isFirstCard ? 'tour-book-get-summary' : undefined}
                   >
-                    Get Summary
+                    {t('getSummary')}
                   </Button>
                   <ActionIcon
                     variant="light"
                     size="lg"
                     onClick={() => onOpenChat(book)}
-                    aria-label="Chat with book"
+                    aria-label={t('chatWithBook')}
                     style={{ backgroundColor: 'rgba(243, 244, 246, 0.92)', color: '#2563EB' }}
                     id={isFirstCard ? 'tour-book-chat' : undefined}
                   >

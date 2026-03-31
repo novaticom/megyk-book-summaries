@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Container, Paper, Title, Text, TextInput, PasswordInput, Button, Stack, Anchor, Alert, Loader, Center, Badge, Group } from '@mantine/core'
 import { IconAlertCircle, IconCheck, IconGift } from '@tabler/icons-react'
 import { createClient } from '@/lib/supabase/client'
@@ -12,6 +13,7 @@ import { REFERRAL_CODE_PARAM, REFERRAL_CODE_COOKIE, REFERRAL_COOKIE_MAX_AGE, REF
 function SignUpForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const t = useTranslations('auth')
   const { utmParams } = useUTMTracking()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -58,14 +60,14 @@ function SignUpForm() {
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('signUp.passwordMismatch'))
       setLoading(false)
       return
     }
 
     // Validate password length
     if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+      setError(t('signUp.passwordTooShort'))
       setLoading(false)
       return
     }
@@ -136,7 +138,7 @@ function SignUpForm() {
         }, 2000)
       }
     } catch (err) {
-      setError('An unexpected error occurred')
+      setError(t('signUp.unexpectedError'))
     } finally {
       setLoading(false)
     }
@@ -148,7 +150,7 @@ function SignUpForm() {
         <Stack gap="lg">
           <div>
             <Group justify="space-between" align="flex-start" mb="xs">
-              <Title order={2}>Create Account</Title>
+              <Title order={2}>{t('signUp.title')}</Title>
               {referralValidating && (
                 <Loader size="xs" />
               )}
@@ -159,16 +161,16 @@ function SignUpForm() {
                   size="lg"
                   leftSection={<IconGift size={14} />}
                 >
-                  Referral Applied
+                  {t('signUp.referralApplied')}
                 </Badge>
               )}
             </Group>
             <Text c="dimmed" size="sm">
-              Sign up to start generating personalized book summaries
+              {t('signUp.subtitle')}
             </Text>
             {referralValidated && referralCode && (
               <Text size="sm" c="green" mt="xs">
-                You'll receive {REFERRAL_REWARDS.referred_bonus.toLocaleString()} bonus MC when you activate your account!
+                {t('signUp.referralBonus', { bonus: REFERRAL_REWARDS.referred_bonus.toLocaleString() })}
               </Text>
             )}
           </div>
@@ -181,15 +183,15 @@ function SignUpForm() {
 
           {success && (
             <Alert icon={<IconCheck size={16} />} color="green" title="Success!">
-              Account created successfully! Please check your email to verify your account.
+              {t('signUp.success')}
             </Alert>
           )}
 
           <form onSubmit={handleSignUp}>
             <Stack gap="md">
               <TextInput
-                label="Email"
-                placeholder="your@email.com"
+                label={t('signUp.email')}
+                placeholder={t('signUp.emailPlaceholder')}
                 type="email"
                 required
                 value={email}
@@ -197,31 +199,31 @@ function SignUpForm() {
               />
 
               <PasswordInput
-                label="Password"
-                placeholder="At least 6 characters"
+                label={t('signUp.password')}
+                placeholder={t('signUp.passwordPlaceholder')}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
 
               <PasswordInput
-                label="Confirm Password"
-                placeholder="Confirm your password"
+                label={t('signUp.confirmPassword')}
+                placeholder={t('signUp.confirmPasswordPlaceholder')}
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
 
               <Button type="submit" fullWidth loading={loading} disabled={success}>
-                Create Account
+                {t('signUp.submit')}
               </Button>
             </Stack>
           </form>
 
           <Text size="sm" ta="center">
-            Already have an account?{' '}
+            {t('signUp.hasAccount')}{' '}
             <Anchor href="/auth/signin" fw={500}>
-              Sign in
+              {t('signUp.signInLink')}
             </Anchor>
           </Text>
         </Stack>

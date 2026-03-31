@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   Card,
   Stack,
@@ -30,6 +31,7 @@ import { ReferralStats, REFERRAL_REWARDS } from '@/lib/types/referral'
 import { trackReferralLinkCopied, trackReferralLinkShared } from '@/lib/analytics/gtm'
 
 export function ReferralShareSection() {
+  const t = useTranslations('referral')
   const [stats, setStats] = useState<ReferralStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,7 +59,7 @@ export function ReferralShareSection() {
       setStats(data.stats)
     } catch (err) {
       console.error('Error fetching referral stats:', err)
-      setError('Failed to load referral information')
+      setError(t('loadError'))
     } finally {
       setLoading(false)
     }
@@ -133,11 +135,11 @@ export function ReferralShareSection() {
                 <IconGift size={18} />
               </ThemeIcon>
               <Text fw={600} size="lg">
-                Refer Friends
+                {t('title')}
               </Text>
             </Group>
             <Text size="sm" c="dimmed">
-              Share your link and earn {REFERRAL_REWARDS.referrer_bonus.toLocaleString()} MC for each friend who joins
+              {t('subtitle', { bonus: REFERRAL_REWARDS.referrer_bonus.toLocaleString() })}
             </Text>
           </div>
         </Group>
@@ -145,7 +147,7 @@ export function ReferralShareSection() {
         {/* Referral Link */}
         <Group gap="xs" align="flex-end">
           <TextInput
-            label="Your referral link"
+            label={t('yourLink')}
             value={stats?.referral_link || ''}
             readOnly
             style={{ flex: 1 }}
@@ -153,7 +155,7 @@ export function ReferralShareSection() {
               input: { fontFamily: 'monospace', fontSize: 13 },
             }}
           />
-          <Tooltip label={copied ? 'Copied' : 'Copy link'}>
+          <Tooltip label={copied ? t('copied') : t('copyLink')}>
             <Button
               variant={copied ? 'filled' : 'light'}
               color={copied ? 'green' : 'blue'}
@@ -173,25 +175,25 @@ export function ReferralShareSection() {
         <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
           <StatCard
             icon={<IconUsers size={20} />}
-            label="Total Invited"
+            label={t('totalInvited')}
             value={(stats?.pending || 0) + (stats?.successful || 0)}
             color="blue"
           />
           <StatCard
             icon={<IconClock size={20} />}
-            label="Pending"
+            label={t('pending')}
             value={stats?.pending || 0}
             color="yellow"
           />
           <StatCard
             icon={<IconCheck size={20} />}
-            label="Activated"
+            label={t('activated')}
             value={stats?.successful || 0}
             color="green"
           />
           <StatCard
             icon={<IconCoins size={20} />}
-            label="Credits Earned"
+            label={t('creditsEarned')}
             value={`${(stats?.total_earned || 0).toLocaleString()} MC`}
             color="violet"
           />
@@ -200,36 +202,36 @@ export function ReferralShareSection() {
         {/* How it works */}
         <Paper p="md" radius="md" bg="gray.0" style={{ border: '1px solid var(--mantine-color-gray-2)' }}>
           <Text size="sm" fw={600} mb="xs">
-            How it works
+            {t('howItWorks')}
           </Text>
           <Stack gap={6}>
             <Group gap="xs" wrap="nowrap">
               <Box w={20} ta="center">
                 <Text size="sm" c="dimmed">1.</Text>
               </Box>
-              <Text size="sm" c="dimmed">Share your unique referral link with friends</Text>
+              <Text size="sm" c="dimmed">{t('step1')}</Text>
             </Group>
             <Group gap="xs" wrap="nowrap">
               <Box w={20} ta="center">
                 <Text size="sm" c="dimmed">2.</Text>
               </Box>
-              <Text size="sm" c="dimmed">They sign up and verify their email</Text>
+              <Text size="sm" c="dimmed">{t('step2')}</Text>
             </Group>
             <Group gap="xs" wrap="nowrap">
               <Box w={20} ta="center">
                 <Text size="sm" c="dimmed">3.</Text>
               </Box>
-              <Text size="sm" c="dimmed">When they send their first chat or generate a summary, you both receive bonus credits</Text>
+              <Text size="sm" c="dimmed">{t('step3')}</Text>
             </Group>
           </Stack>
           <Group gap="md" mt="md">
             <Group gap={4}>
               <IconGift size={14} color="var(--mantine-color-violet-6)" />
-              <Text size="sm" fw={500}>You get: {REFERRAL_REWARDS.referrer_bonus.toLocaleString()} MC</Text>
+              <Text size="sm" fw={500}>{t('youGet', { bonus: REFERRAL_REWARDS.referrer_bonus.toLocaleString() })}</Text>
             </Group>
             <Group gap={4}>
               <IconGift size={14} color="var(--mantine-color-green-6)" />
-              <Text size="sm" fw={500}>They get: {REFERRAL_REWARDS.referred_bonus.toLocaleString()} MC</Text>
+              <Text size="sm" fw={500}>{t('theyGet', { bonus: REFERRAL_REWARDS.referred_bonus.toLocaleString() })}</Text>
             </Group>
           </Group>
         </Paper>

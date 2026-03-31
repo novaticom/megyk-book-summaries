@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Container, Title, Text, Stack, Card, TextInput, PasswordInput, Button, Alert } from '@mantine/core'
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react'
 import { createClient } from '@/lib/supabase/client'
@@ -8,6 +9,7 @@ import { InstallAppSection } from '@/components/pwa'
 import { ReferralShareSection } from '@/components/referral'
 
 export default function ProfilePage() {
+  const t = useTranslations('profile')
   const [email, setEmail] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -50,10 +52,10 @@ export default function ProfilePage() {
         return
       }
 
-      setSuccess('Email updated successfully! Please check your new email for confirmation.')
+      setSuccess(t('email.success'))
       setEmail(newEmail)
     } catch (err) {
-      setError('An unexpected error occurred')
+      setError(t('email.unexpectedError'))
     } finally {
       setLoading(false)
     }
@@ -67,14 +69,14 @@ export default function ProfilePage() {
 
     // Validate passwords match
     if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match')
+      setPasswordError(t('password.mismatch'))
       setLoadingPassword(false)
       return
     }
 
     // Validate password length
     if (newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters')
+      setPasswordError(t('password.tooShort'))
       setLoadingPassword(false)
       return
     }
@@ -90,11 +92,11 @@ export default function ProfilePage() {
         return
       }
 
-      setPasswordSuccess('Password updated successfully!')
+      setPasswordSuccess(t('password.success'))
       setNewPassword('')
       setConfirmPassword('')
     } catch (err) {
-      setPasswordError('An unexpected error occurred')
+      setPasswordError(t('email.unexpectedError'))
     } finally {
       setLoadingPassword(false)
     }
@@ -105,10 +107,10 @@ export default function ProfilePage() {
       <Stack gap="lg">
         <div>
           <Title order={1} mb="xs">
-            Profile Settings
+            {t('title')}
           </Title>
           <Text size="lg" c="dimmed">
-            Manage your account and earn rewards
+            {t('subtitle')}
           </Text>
         </div>
 
@@ -120,10 +122,10 @@ export default function ProfilePage() {
           <Stack gap="md">
             <div>
               <Text fw={600} size="lg" mb="xs">
-                Email Address
+                {t('email.title')}
               </Text>
               <Text size="sm" c="dimmed">
-                Update your email address
+                {t('email.subtitle')}
               </Text>
             </div>
 
@@ -142,23 +144,23 @@ export default function ProfilePage() {
             <form onSubmit={handleUpdateEmail}>
               <Stack gap="md">
                 <TextInput
-                  label="Current Email"
+                  label={t('email.current')}
                   value={email}
                   disabled
-                  description="Your current email address"
+                  description={t('email.currentPlaceholder')}
                 />
 
                 <TextInput
-                  label="New Email"
+                  label={t('email.new')}
                   type="email"
-                  placeholder="your@newemail.com"
+                  placeholder={t('email.newPlaceholder')}
                   required
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                 />
 
                 <Button type="submit" loading={loading} disabled={newEmail === email}>
-                  Update Email
+                  {t('email.submit')}
                 </Button>
               </Stack>
             </form>
@@ -170,10 +172,10 @@ export default function ProfilePage() {
           <Stack gap="md">
             <div>
               <Text fw={600} size="lg" mb="xs">
-                Password
+                {t('password.title')}
               </Text>
               <Text size="sm" c="dimmed">
-                Change your password
+                {t('password.subtitle')}
               </Text>
             </div>
 
@@ -192,23 +194,23 @@ export default function ProfilePage() {
             <form onSubmit={handleUpdatePassword}>
               <Stack gap="md">
                 <PasswordInput
-                  label="New Password"
-                  placeholder="At least 6 characters"
+                  label={t('password.new')}
+                  placeholder={t('password.newPlaceholder')}
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
 
                 <PasswordInput
-                  label="Confirm New Password"
-                  placeholder="Confirm your new password"
+                  label={t('password.confirm')}
+                  placeholder={t('password.confirmPlaceholder')}
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
 
                 <Button type="submit" loading={loadingPassword}>
-                  Update Password
+                  {t('password.submit')}
                 </Button>
               </Stack>
             </form>

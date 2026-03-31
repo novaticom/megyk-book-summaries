@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Card,
   Text,
@@ -52,6 +53,7 @@ function HeroSection({
   onOpenChat: (book: Book) => void;
   onGetSummary: (book: Book) => void;
 }) {
+  const t = useTranslations('dashboard');
   // Default placeholder if no book provided
   const displayTitle = getDisplayTitle(book?.title) || book?.title;
   const currentBook = book ? {
@@ -120,7 +122,7 @@ function HeroSection({
               border: '1px solid #2563EB',
             }}
           >
-            FEATURED
+            {t('featured')}
           </Badge>
         </Stack>
 
@@ -161,7 +163,7 @@ function HeroSection({
             }
             fullWidth
           >
-            Chat With Book
+            {t('chatWithBook')}
           </Button>
 
           <Button
@@ -180,7 +182,7 @@ function HeroSection({
             }}
             fullWidth
           >
-            Get Summary
+            {t('getSummary')}
           </Button>
         </Stack>
       </Stack>
@@ -232,7 +234,7 @@ function HeroSection({
               width: 'fit-content'
             }}
           >
-            FEATURED
+            {t('featured')}
           </Badge>
           
           <Title order={1} size="2.5rem" c="#000000" style={{ lineHeight: 1.2, textAlign: 'left' }}>
@@ -269,7 +271,7 @@ function HeroSection({
                 } as any
               }
             >
-              Chat With Book
+              {t('chatWithBook')}
             </Button>
 
             <Button
@@ -287,7 +289,7 @@ function HeroSection({
                 border: '1px solid transparent',
               }}
             >
-              Get Summary
+              {t('getSummary')}
             </Button>
           </Group>
         </Stack>
@@ -312,6 +314,8 @@ function HeroSection({
 
 export default function DashboardPage() {
   const router = useRouter();
+  const t = useTranslations('dashboard');
+  const tCommon = useTranslations('common');
   const [recentSummaries, setRecentSummaries] = useState<RecentSummary[]>([]);
   const [recommendedBooks, setRecommendedBooks] = useState<Book[]>([]);
   const [availableTags, setAvailableTags] = useState<BookTag[]>([]);
@@ -430,9 +434,9 @@ export default function DashboardPage() {
     } catch (err: any) {
       console.error('[DashboardPage] Error fetching dashboard data:', err);
       if (err.name === 'AbortError') {
-        setError('Request timed out. Please check your connection and try again.');
+        setError(t('timeoutError'));
       } else {
-        setError('Failed to load dashboard data');
+        setError(t('loadError'));
       }
     } finally {
       setLoading(false);
@@ -445,7 +449,7 @@ export default function DashboardPage() {
       <Center style={{ minHeight: '400px' }}>
         <Stack align="center" gap="md">
           <Loader size="lg" />
-          <Text c="dimmed">Loading dashboard...</Text>
+          <Text c="dimmed">{t('loading')}</Text>
         </Stack>
       </Center>
     );
@@ -484,7 +488,7 @@ export default function DashboardPage() {
   return (
     <Container size="xl" pt="0" pb="xl">
       <Stack gap="xl">
-        <Title id="tour-dashboard-title" order={1} c="#000000">For You</Title>
+        <Title id="tour-dashboard-title" order={1} c="#000000">{t('forYou')}</Title>
 
         {/* Hero Section - Continue Reading */}
         <HeroSection book={featuredBook} onOpenChat={handleOpenChat} onGetSummary={handleGetSummary} />
@@ -492,7 +496,7 @@ export default function DashboardPage() {
       {/* Books Carousel with Tag Filter */}
       <Box id="tour-recommended-carousel">
         <Stack gap="md" mb="md">
-          <Title id="tour-recommended-title" order={2} c="#000000">Browse Books</Title>
+          <Title id="tour-recommended-title" order={2} c="#000000">{t('browseBooks')}</Title>
           {availableTags.length > 0 && (
             <TagFilter
               tags={availableTags}
@@ -528,7 +532,7 @@ export default function DashboardPage() {
             />
           ) : !booksLoading ? (
             <Center py="xl">
-              <Text c="dimmed">No books found for this tag</Text>
+              <Text c="dimmed">{t('noBooksForTag')}</Text>
             </Center>
           ) : null}
         </Box>
@@ -538,7 +542,7 @@ export default function DashboardPage() {
       {recentSummaries.length > 0 && (
         <Box>
           <Stack gap="md" mb="md">
-            <Title order={2} c="#000000">Your Collection</Title>
+            <Title order={2} c="#000000">{t('yourCollection')}</Title>
           </Stack>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
             {recentSummaries.slice(0, 3).map((summary) => (
@@ -567,10 +571,10 @@ export default function DashboardPage() {
                   <Group justify="space-between" wrap="nowrap" align="flex-start">
                     <Stack gap={4} style={{ flex: 1 }}>
                       <Text size="lg" fw={600} lineClamp={2} c="#000000">
-                        {getDisplayTitle(summary.book?.title) || summary.book?.title || 'Unknown Book'}
+                        {getDisplayTitle(summary.book?.title) || summary.book?.title || tCommon('unknownBook')}
                       </Text>
                       <Text size="sm" c="#374151">
-                        by {summary.book?.author || 'Unknown Author'}
+                        by {summary.book?.author || tCommon('unknownAuthor')}
                       </Text>
                     </Stack>
                   </Group>

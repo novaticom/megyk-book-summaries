@@ -1,6 +1,7 @@
 'use client'
 
 import { Box, Text, Image, Group, Button } from '@mantine/core'
+import { useTranslations, useLocale } from 'next-intl'
 import { IconMessage } from '@tabler/icons-react'
 import { ChatSessionWithBook } from '@/lib/types/chat'
 import { getDisplayTitle } from '@/lib/utils/bookTitle'
@@ -27,15 +28,18 @@ const getFallbackPlaceholder = () => {
 }
 
 export function ChatBookCard({ session, onClick }: ChatBookCardProps) {
+  const t = useTranslations('chatCard')
+  const locale = useLocale()
+
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'No messages yet'
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return t('noMessages')
+    return new Date(dateString).toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
     })
   }
 
-  const displayTitle = getDisplayTitle(session.book?.title) || session.book?.title || 'Unknown Book'
+  const displayTitle = getDisplayTitle(session.book?.title) || session.book?.title || t('noMessages')
 
   return (
     <Box
@@ -90,7 +94,7 @@ export function ChatBookCard({ session, onClick }: ChatBookCardProps) {
           <Group gap={4} align="center">
             <IconMessage size={14} style={{ color: 'white' }} />
             <Text size="xs" c="white" fw={500}>
-              Last: {formatDate(session.last_message_at)}
+              {t('lastMessage', { date: formatDate(session.last_message_at) })}
             </Text>
           </Group>
         </Box>
@@ -102,7 +106,7 @@ export function ChatBookCard({ session, onClick }: ChatBookCardProps) {
           {displayTitle}
         </Text>
         <Text size="xs" c="dimmed" mb="xs">
-          {session.book?.author || 'Unknown Author'}
+          {session.book?.author || ''}
         </Text>
         <Button
           size="xs"
@@ -115,7 +119,7 @@ export function ChatBookCard({ session, onClick }: ChatBookCardProps) {
             onClick()
           }}
         >
-          Continue Chatting
+          {t('continueChatting')}
         </Button>
       </Box>
     </Box>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Modal, Stack, Text, Button, Group, ThemeIcon, Box, Paper, TextInput, Tooltip } from '@mantine/core'
 import { IconCoins, IconAlertCircle, IconGift, IconSend, IconCheck, IconCopy, IconLoader2 } from '@tabler/icons-react'
 import { formatCredits } from '@/lib/types/credits'
@@ -21,6 +22,8 @@ export function InsufficientCreditsModal({
   currentBalance,
   actionName = 'this action',
 }: InsufficientCreditsModalProps) {
+  const t = useTranslations('credits.insufficient')
+  const tCommon = useTranslations('common')
   const shortfall = requiredCredits - currentBalance
 
   const [email, setEmail] = useState('')
@@ -49,7 +52,7 @@ export function InsufficientCreditsModal({
 
   const handleSendInvite = async () => {
     if (!email.trim()) {
-      setError('Please enter an email address')
+      setError(t('emailRequired'))
       return
     }
 
@@ -67,18 +70,18 @@ export function InsufficientCreditsModal({
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Failed to send invite')
+        setError(data.error || t('inviteError'))
         return
       }
 
-      setSuccess(`Invite sent to ${email}`)
+      setSuccess(t('inviteSent', { email }))
       setEmail('')
       setName('')
 
       // Clear success after 3 seconds to allow another invite
       setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
-      setError('Failed to send invite. Please try again.')
+      setError(t('inviteError'))
     } finally {
       setSending(false)
     }
@@ -118,7 +121,7 @@ export function InsufficientCreditsModal({
             <IconAlertCircle size={20} />
           </ThemeIcon>
           <Text size="lg" fw={600}>
-            Insufficient Credits
+            {t('title')}
           </Text>
         </Group>
       }
@@ -128,7 +131,7 @@ export function InsufficientCreditsModal({
     >
       <Stack gap="lg">
         <Text size="sm" c="dimmed">
-          You don't have enough Megyk Credits to perform {actionName}.
+          {t('description', { action: actionName })}
         </Text>
 
         <Box
@@ -140,11 +143,11 @@ export function InsufficientCreditsModal({
         >
           <Stack gap="xs">
             <Group justify="space-between">
-              <Text size="sm" c="dimmed">Required:</Text>
+              <Text size="sm" c="dimmed">{t('required')}</Text>
               <Text size="sm" fw={600} c="red">{formatCredits(requiredCredits)}</Text>
             </Group>
             <Group justify="space-between">
-              <Text size="sm" c="dimmed">Your balance:</Text>
+              <Text size="sm" c="dimmed">{t('balance')}</Text>
               <Text size="sm" fw={600}>{formatCredits(currentBalance)}</Text>
             </Group>
             <Box
@@ -155,7 +158,7 @@ export function InsufficientCreditsModal({
               }}
             >
               <Group justify="space-between">
-                <Text size="sm" c="dimmed">Shortfall:</Text>
+                <Text size="sm" c="dimmed">{t('shortfall')}</Text>
                 <Text size="sm" fw={700} c="red">{formatCredits(shortfall)}</Text>
               </Group>
             </Box>
@@ -177,10 +180,10 @@ export function InsufficientCreditsModal({
             </ThemeIcon>
             <div>
               <Text size="sm" fw={600}>
-                Invite a friend, earn {REFERRAL_REWARDS.referrer_bonus.toLocaleString()} MC
+                {t('referralEarn', { bonus: REFERRAL_REWARDS.referrer_bonus.toLocaleString() })}
               </Text>
               <Text size="xs" c="dimmed">
-                They get {REFERRAL_REWARDS.referred_bonus.toLocaleString()} MC too
+                {t('referralTheyGet', { bonus: REFERRAL_REWARDS.referred_bonus.toLocaleString() })}
               </Text>
             </div>
           </Group>
@@ -201,14 +204,14 @@ export function InsufficientCreditsModal({
                 </Text>
               </Group>
               <Text size="xs" c="dimmed" mt="xs">
-                Want to invite another friend?
+                {t('inviteAnother')}
               </Text>
             </Box>
           ) : (
             <Stack gap="sm">
               <Group gap="sm" grow>
                 <TextInput
-                  placeholder="Friend's email"
+                  placeholder={t('friendEmail')}
                   value={email}
                   onChange={(e) => setEmail(e.currentTarget.value)}
                   onKeyDown={handleKeyDown}
@@ -218,7 +221,7 @@ export function InsufficientCreditsModal({
                   style={{ flex: 2 }}
                 />
                 <TextInput
-                  placeholder="Name (optional)"
+                  placeholder={t('friendName')}
                   value={name}
                   onChange={(e) => setName(e.currentTarget.value)}
                   onKeyDown={handleKeyDown}
@@ -236,15 +239,15 @@ export function InsufficientCreditsModal({
                 disabled={sending || !email.trim()}
                 fullWidth
               >
-                {sending ? 'Sending...' : 'Send Invite'}
+                {sending ? t('sending') : t('sendInvite')}
               </Button>
             </Stack>
           )}
 
           {/* Copy link fallback */}
           <Group justify="center" mt="md" gap="xs">
-            <Text size="xs" c="dimmed">or</Text>
-            <Tooltip label={copied ? 'Copied' : 'Copy your referral link'}>
+            <Text size="xs" c="dimmed">{tCommon('or')}</Text>
+            <Tooltip label={copied ? tCommon('copied') : tCommon('copyLink')}>
               <Button
                 variant="subtle"
                 size="xs"
@@ -252,19 +255,19 @@ export function InsufficientCreditsModal({
                 leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
                 onClick={handleCopyLink}
               >
-                {copied ? 'Copied' : 'Copy Link'}
+                {copied ? tCommon('copied') : tCommon('copyLink')}
               </Button>
             </Tooltip>
           </Group>
         </Paper>
 
         <Text size="xs" c="dimmed" ta="center">
-          Subscription plans coming soon
+          {t('plansComingSoon')}
         </Text>
 
         <Group justify="flex-end">
           <Button variant="default" onClick={handleClose}>
-            Close
+            {t('close')}
           </Button>
         </Group>
       </Stack>

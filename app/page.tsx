@@ -1,13 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { 
-  Container, 
-  Center, 
-  Text, 
-  Stack, 
-  Title, 
-  Button, 
+import { useTranslations } from 'next-intl';
+import {
+  Container,
+  Center,
+  Text,
+  Stack,
+  Title,
+  Button,
   Group,
   Box,
 } from '@mantine/core';
@@ -15,6 +16,7 @@ import { IconArrowRight } from '@tabler/icons-react';
 
 export default function Home() {
   const router = useRouter();
+  const t = useTranslations('home');
 
   // This page only shows for unauthenticated users
   // Authenticated users are redirected server-side via middleware
@@ -44,11 +46,10 @@ export default function Home() {
                 style={{ height: 80, width: 'auto' }}
               />
               <Title order={1} size="3rem" fw={800} c="#000000">
-                Chat with Any Book
+                {t('headline')}
               </Title>
               <Text size="xl" c="#374151" maw={600}>
-                Have a conversation with your favorite books. Ask questions, explore ideas,
-                and get instant answers powered by AI.
+                {t('description')}
               </Text>
             </Stack>
             
@@ -64,20 +65,20 @@ export default function Home() {
                   color: '#FFFFFF',
                 }}
               >
-                Get Started
+                {t('getStarted')}
               </Button>
               <Button
                 size="lg"
                 variant="outline"
                 c="#000000"
-                style={{ 
+                style={{
                   borderColor: '#374151',
                   color: '#000000',
                   fontWeight: 600
                 }}
                 onClick={() => router.push('/auth/signin')}
               >
-                Sign In
+                {t('signIn')}
               </Button>
             </Group>
           </Stack>

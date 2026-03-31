@@ -1,6 +1,7 @@
 'use client'
 
 import { Box, Button } from '@mantine/core'
+import { useTranslations } from 'next-intl'
 import { BookTag } from '@/lib/types/books'
 import styles from './TagFilter.module.css'
 
@@ -11,6 +12,8 @@ interface TagFilterProps {
 }
 
 export function TagFilter({ tags, selectedTag, onTagSelect }: TagFilterProps) {
+  const t = useTranslations('carousel');
+
   const handleTagClick = (tagSlug: string | null) => {
     // If clicking the already selected tag, toggle it off (go back to "All")
     if (tagSlug === selectedTag) {
@@ -30,7 +33,7 @@ export function TagFilter({ tags, selectedTag, onTagSelect }: TagFilterProps) {
         className={styles.tagPill}
         onClick={() => handleTagClick(null)}
       >
-        All
+        {t('all')}
       </Button>
       {tags.map((tag) => (
         <Button

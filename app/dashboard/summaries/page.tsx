@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
+import { useLocale } from 'next-intl'
 import { Container, Title, Text, Stack, Card, Center, Button, Group, Badge, Loader, Table, SimpleGrid, Box, Image, Divider } from '@mantine/core'
 import { IconBookmark, IconDownload, IconTrash, IconMessage } from '@tabler/icons-react'
 import { SummaryWithBook } from '@/lib/types/summaries'
@@ -31,6 +33,9 @@ const getFallbackPlaceholder = (book: any) => {
 };
 
 export default function SummariesPage() {
+  const t = useTranslations('summaries')
+  const tCommon = useTranslations('common')
+  const locale = useLocale()
   const [summaries, setSummaries] = useState<SummaryWithBook[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -58,7 +63,7 @@ export default function SummariesPage() {
       setSummaries(data.summaries || [])
     } catch (err) {
       console.error('Error fetching summaries:', err)
-      setError('Failed to load summaries')
+      setError(t('loading'))
     } finally {
       setLoading(false)
     }
@@ -84,9 +89,9 @@ export default function SummariesPage() {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
 
         if (response.status === 404) {
-          alert('PDF file not found. The file may have been deleted or lost. You can delete this summary and regenerate it if needed.')
+          alert(t('fileNotFound'))
         } else {
-          alert(`Failed to download summary: ${errorData.error || 'Unknown error'}`)
+          alert(t('downloadError', { error: errorData.error || 'Unknown error' }))
         }
         return
       }
@@ -125,12 +130,12 @@ export default function SummariesPage() {
       }, 100)
     } catch (err) {
       console.error('Error downloading summary:', err)
-      alert('An unexpected error occurred while downloading the summary.')
+      alert(t('downloadUnexpectedError'))
     }
   }
 
   const handleDelete = async (summaryId: string) => {
-    if (!confirm('Are you sure you want to delete this summary? This action cannot be undone.')) {
+    if (!confirm(t('deleteConfirm'))) {
       return
     }
 
@@ -149,7 +154,7 @@ export default function SummariesPage() {
       setSummaries(summaries.filter(s => s.id !== summaryId))
     } catch (err) {
       console.error('Error deleting summary:', err)
-      alert('Failed to delete summary. Please try again.')
+      alert(t('deleteError'))
     } finally {
       setDeletingId(null)
     }
@@ -177,7 +182,7 @@ export default function SummariesPage() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -222,10 +227,10 @@ export default function SummariesPage() {
       <Stack gap="xl">
         <div>
           <Title order={1} mb="xs" c="#000000">
-            My Collection
+            {t('title')}
           </Title>
           <Text size="lg" c="#374151">
-            Your chat history and book summaries
+            {t('subtitle')}
           </Text>
         </div>
 
@@ -234,7 +239,7 @@ export default function SummariesPage() {
             <Center py="xl">
               <Stack align="center" gap="md">
                 <Loader size="lg" type="dots" />
-                <Text c="dimmed">Loading your collection...</Text>
+                <Text c="dimmed">{t('loading')}</Text>
               </Stack>
             </Center>
           </Card>
@@ -243,7 +248,7 @@ export default function SummariesPage() {
             <Center py="xl">
               <Stack align="center" gap="md">
                 <Text c="red" size="lg">{error}</Text>
-                <Button onClick={fetchSummaries}>Try Again</Button>
+                <Button onClick={fetchSummaries}>{tCommon('retry')}</Button>
               </Stack>
             </Center>
           </Card>
@@ -252,9 +257,9 @@ export default function SummariesPage() {
             <Center py="xl">
               <Stack align="center" gap="md">
                 <IconBookmark size={48} stroke={1.5} style={{ opacity: 0.5 }} />
-                <Text size="lg" fw={500}>No Collection Yet</Text>
+                <Text size="lg" fw={500}>{t('empty')}</Text>
                 <Text size="sm" c="dimmed" ta="center" maw={400}>
-                  Start chatting with books or generate summaries from the Library page
+                  {t('emptySubtext')}
                 </Text>
               </Stack>
             </Center>
@@ -267,10 +272,10 @@ export default function SummariesPage() {
                 <Group gap="xs" mb="md">
                   <IconMessage size={24} style={{ color: '#2563eb' }} />
                   <Title order={2} size="h3" c="#000000">
-                    Chat History
+                    {t('chatHistory')}
                   </Title>
                   <Badge variant="light" color="blue" size="sm">
-                    {chatSessions.length} {chatSessions.length === 1 ? 'book' : 'books'}
+                    {t('chatCount', { count: chatSessions.length })}
                   </Badge>
                 </Group>
 
@@ -300,10 +305,10 @@ export default function SummariesPage() {
                 <Group gap="xs" mb="md">
                   <IconBookmark size={24} style={{ color: '#2563eb' }} />
                   <Title order={2} size="h3" c="#000000">
-                    Summaries
+                    {t('summariesTab')}
                   </Title>
                   <Badge variant="light" color="blue" size="sm">
-                    {summaries.length} {summaries.length === 1 ? 'summary' : 'summaries'}
+                    {t('summaryCount', { count: summaries.length })}
                   </Badge>
                 </Group>
 
@@ -319,7 +324,7 @@ export default function SummariesPage() {
                               <Image
                                 src={getBookCoverPlaceholder(bookGroup.book)}
                                 fallbackSrc={getFallbackPlaceholder(bookGroup.book)}
-                                alt={`Cover of ${getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || 'Book'}`}
+                                alt={`Cover of ${getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || tCommon('unknownBook')}`}
                                 fit="cover"
                                 radius="md"
                                 h={100}
@@ -328,11 +333,11 @@ export default function SummariesPage() {
                             </Box>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <Text fw={700} size="xl" lineClamp={2}>
-                                {getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || 'Unknown Book'}
+                                {getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || tCommon('unknownBook')}
                               </Text>
-                              <Text c="dimmed" size="sm">by {bookGroup.book?.author || 'Unknown Author'}</Text>
+                              <Text c="dimmed" size="sm">by {bookGroup.book?.author || tCommon('unknownAuthor')}</Text>
                               <Text c="dimmed" size="xs" mt={4}>
-                                {bookGroup.summaries.length} {bookGroup.summaries.length === 1 ? 'summary' : 'summaries'}
+                                {t('bookSummaryCount', { count: bookGroup.summaries.length })}
                               </Text>
                             </div>
                           </Group>
@@ -352,7 +357,7 @@ export default function SummariesPage() {
                                   </Group>
 
                                   <Text size="xs" c="dimmed">
-                                    Generated {formatDate(summary.updated_at)}
+                                    {t('generated')} {formatDate(summary.updated_at)}
                                   </Text>
 
                                   <Group gap="xs">
@@ -363,7 +368,7 @@ export default function SummariesPage() {
                                       onClick={() => handleDownload(summary.id, summary.book?.title || 'summary', summary.length, summary.style)}
                                       style={{ flex: 1 }}
                                     >
-                                      Download PDF
+                                      {t('downloadPdf')}
                                     </Button>
                                     <Button
                                       size="xs"
@@ -397,7 +402,7 @@ export default function SummariesPage() {
                             <Image
                               src={getBookCoverPlaceholder(bookGroup.book)}
                               fallbackSrc={getFallbackPlaceholder(bookGroup.book)}
-                              alt={`Cover of ${getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || 'Book'}`}
+                              alt={`Cover of ${getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || tCommon('unknownBook')}`}
                               fit="cover"
                               radius="md"
                               h={120}
@@ -406,12 +411,12 @@ export default function SummariesPage() {
                             />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <Text fw={700} size="xl">
-                                {getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || 'Unknown Book'}
+                                {getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || tCommon('unknownBook')}
                               </Text>
                               <Group gap="md" mt={4}>
-                                <Text c="dimmed" size="sm">by {bookGroup.book?.author || 'Unknown Author'}</Text>
+                                <Text c="dimmed" size="sm">by {bookGroup.book?.author || tCommon('unknownAuthor')}</Text>
                                 <Text c="dimmed" size="xs">
-                                  {bookGroup.summaries.length} {bookGroup.summaries.length === 1 ? 'summary' : 'summaries'}
+                                  {t('bookSummaryCount', { count: bookGroup.summaries.length })}
                                 </Text>
                               </Group>
                             </div>
@@ -423,10 +428,10 @@ export default function SummariesPage() {
                           <Table highlightOnHover horizontalSpacing="sm" layout="fixed">
                             <Table.Thead>
                               <Table.Tr>
-                                <Table.Th style={{ width: '20%' }}>Style</Table.Th>
-                                <Table.Th style={{ width: '20%' }}>Length</Table.Th>
-                                <Table.Th style={{ width: '35%' }}>Generated</Table.Th>
-                                <Table.Th style={{ width: '25%', textAlign: 'right' }}>Actions</Table.Th>
+                                <Table.Th style={{ width: '20%' }}>{t('style')}</Table.Th>
+                                <Table.Th style={{ width: '20%' }}>{t('length')}</Table.Th>
+                                <Table.Th style={{ width: '35%' }}>{t('generated')}</Table.Th>
+                                <Table.Th style={{ width: '25%', textAlign: 'right' }}>{t('actions')}</Table.Th>
                               </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
@@ -453,7 +458,7 @@ export default function SummariesPage() {
                                         leftSection={<IconDownload size={14} />}
                                         onClick={() => handleDownload(summary.id, summary.book?.title || 'summary', summary.length, summary.style)}
                                       >
-                                        Download PDF
+                                        {t('downloadPdf')}
                                       </Button>
                                       <Button
                                         size="xs"
@@ -487,7 +492,7 @@ export default function SummariesPage() {
         onClose={handleChatClose}
         book={chatBook}
         loadHistory={loadChatHistory}
-        skipHistoryConfirmation={loadChatHistory}  // Skip confirmation when resuming from My Collections
+        skipHistoryConfirmation={loadChatHistory}
       />
     </Container>
   )
