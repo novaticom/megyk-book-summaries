@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createCreditService } from '@/lib/services/credits';
 import { getChatMessageCreditCost } from '@/lib/types/credits';
 import { createReferralService } from '@/lib/services/referrals';
+import { getLocale } from 'next-intl/server';
 
 /**
  * Save a chat message to the database
@@ -86,11 +87,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const locale = await getLocale();
+
     const requestBody = {
       user_id: user.id,
       book_id: bookId,
       message,
       socratic_exchange_count: socratic_exchange_count ?? 1,
+      locale,
     };
     console.log('[Socratic Chat] Request body:', JSON.stringify(requestBody));
 

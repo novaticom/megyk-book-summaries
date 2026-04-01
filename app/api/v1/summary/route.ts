@@ -4,6 +4,7 @@ import { createCreditService } from '@/lib/services/credits'
 import { getSummaryCreditCost } from '@/lib/types/credits'
 import { SummaryStyle, SummaryLength } from '@/lib/types/preferences'
 import { createReferralService } from '@/lib/services/referrals'
+import { getLocale } from 'next-intl/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,6 +85,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const locale = await getLocale()
+
     const webhookPayload = {
       book_id,
       preferences: {
@@ -91,7 +94,8 @@ export async function POST(request: NextRequest) {
         length: preferences.length
       },
       user_id: user.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      locale,
     }
 
     try {
