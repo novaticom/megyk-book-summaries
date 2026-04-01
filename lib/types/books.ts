@@ -5,6 +5,13 @@ export interface BookTag {
   display_order?: number
 }
 
+export interface BookTranslations {
+  [locale: string]: {
+    title?: string
+    summary?: string
+  }
+}
+
 export interface Book {
   id: string
   title: string
@@ -17,6 +24,7 @@ export interface Book {
   cover_image_url?: string
   page_count?: number
   default_summary_pdf_url?: string
+  translations?: BookTranslations
   tags?: BookTag[]
   created_at: string
   updated_at: string

@@ -72,6 +72,7 @@ function paginateData(data: Book[], page: number, pageSize: number) {
 
 export default function LibraryPage() {
   const t = useTranslations('library')
+  const tGenres = useTranslations('genres')
   const [allBooks, setAllBooks] = useState<Book[]>([]) // All data from API
   const [sortedData, setSortedData] = useState<Book[]>([]) // Sorted data
   const [displayedBooks, setDisplayedBooks] = useState<Book[]>([]) // Paginated data for display
@@ -252,7 +253,7 @@ export default function LibraryPage() {
                         <Stack gap="xs">
                           {book.genre && (
                             <Badge variant="light" size="sm" color="gray">
-                              {book.genre}
+                              {tGenres.has(book.genre!) ? tGenres(book.genre as any) : book.genre}
                             </Badge>
                           )}
                           <Group gap="md">

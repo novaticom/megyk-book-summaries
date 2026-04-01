@@ -67,6 +67,7 @@ const BookCard = memo(function BookCard({
   onOpenChat,
 }: BookCardProps) {
   const t = useTranslations('carousel');
+  const tGenres = useTranslations('genres');
   return (
     <Card
       className={styles.bookCard}
@@ -100,7 +101,7 @@ const BookCard = memo(function BookCard({
                     color: '#000000'
                   }}
                 >
-                  {book.genre}
+                  {tGenres.has(book.genre!) ? tGenres(book.genre as any) : book.genre}
                 </Badge>
               )}
               {book.default_summary_pdf_url ? (

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getLocale } from 'next-intl/server'
 import { Book, BookTag } from '@/lib/types/books'
+import { localizeBooks } from '@/lib/utils/bookLocale'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +11,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = await createClient()
+    const locale = await getLocale()
     console.log(`[Books API] Supabase client created in ${Date.now() - startTime}ms`)
 
     // Fetch genre mapping from database
@@ -148,7 +151,7 @@ export async function GET(request: NextRequest) {
       })) || []
 
       return NextResponse.json({
-        books: transformedBooks as Book[]
+        books: localizeBooks(transformedBooks as Book[], locale)
       })
     }
     
@@ -235,7 +238,7 @@ export async function GET(request: NextRequest) {
       })) || []
 
       return NextResponse.json({
-        books: transformedBooks as Book[],
+        books: localizeBooks(transformedBooks as Book[], locale),
         total: count || 0
       })
     }
@@ -350,7 +353,7 @@ export async function GET(request: NextRequest) {
     })) || []
 
     return NextResponse.json({
-      books: transformedBooks as Book[],
+      books: localizeBooks(transformedBooks as Book[], locale),
       pagination: {
         page,
         limit,

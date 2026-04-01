@@ -376,5 +376,27 @@
     "title": "Sie sind offline",
     "description": "Es scheint, dass Sie keine Internetverbindung haben. Ihre heruntergeladene Essenz ist weiterhin verfügbar!",
     "retry": "Erneut versuchen"
+  },
+  "genres": {
+    "Productivity": "Produktivität",
+    "Psychology": "Psychologie",
+    "Business": "Wirtschaft",
+    "Leadership": "Führung",
+    "Management": "Management",
+    "Self-Help": "Selbsthilfe",
+    "History": "Geschichte",
+    "Memoir": "Memoiren"
+  },
+  "tags": {
+    "Productivity": "Produktivität",
+    "Psychology": "Psychologie",
+    "Business": "Wirtschaft",
+    "Leadership": "Führung",
+    "Self-Help": "Selbsthilfe",
+    "Habits": "Gewohnheiten",
+    "Mindset": "Denkweise",
+    "Communication": "Kommunikation",
+    "Finance": "Finanzen",
+    "Entrepreneurship": "Unternehmertum"
   }
 }

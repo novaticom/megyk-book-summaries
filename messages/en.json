@@ -376,5 +376,27 @@
     "title": "You're Offline",
     "description": "It looks like you've lost your internet connection. Your downloaded essence is still available!",
     "retry": "Try Again"
+  },
+  "genres": {
+    "Productivity": "Productivity",
+    "Psychology": "Psychology",
+    "Business": "Business",
+    "Leadership": "Leadership",
+    "Management": "Management",
+    "Self-Help": "Self-Help",
+    "History": "History",
+    "Memoir": "Memoir"
+  },
+  "tags": {
+    "Productivity": "Productivity",
+    "Psychology": "Psychology",
+    "Business": "Business",
+    "Leadership": "Leadership",
+    "Self-Help": "Self-Help",
+    "Habits": "Habits",
+    "Mindset": "Mindset",
+    "Communication": "Communication",
+    "Finance": "Finance",
+    "Entrepreneurship": "Entrepreneurship"
   }
 }
