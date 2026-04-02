@@ -270,7 +270,7 @@ export default function SummariesPage() {
             {hasChats && (
               <Box>
                 <Group gap="xs" mb="md">
-                  <IconMessage size={24} style={{ color: '#2563eb' }} />
+                  <IconMessage size={24} style={{ color: '#4A7DA5' }} />
                   <Title order={2} size="h3" c="#000000">
                     {t('chatHistory')}
                   </Title>
@@ -303,7 +303,7 @@ export default function SummariesPage() {
             {hasSummaries && (
               <Box>
                 <Group gap="xs" mb="md">
-                  <IconBookmark size={24} style={{ color: '#2563eb' }} />
+                  <IconBookmark size={24} style={{ color: '#4A7DA5' }} />
                   <Title order={2} size="h3" c="#000000">
                     {t('summariesTab')}
                   </Title>

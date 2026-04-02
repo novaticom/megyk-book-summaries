@@ -222,7 +222,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               className="hover:opacity-80"
             >
               <img
-                src="/megyk.svg"
+                src="/new-logo.png"
                 alt="Megyk Books"
                 style={{ height: '120px', width: 'auto' }}
               />
@@ -268,7 +268,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '4px',
-                color: pathname === item.href ? '#2563EB' : '#374151',
+                color: pathname === item.href ? '#4A7DA5' : '#374151',
                 transition: 'color 0.2s ease',
               }}
             >

@@ -7,18 +7,18 @@ export const theme = createTheme({
   defaultRadius: 'md',
 
   colors: {
-    // Professional blue palette - modern and executive-focused
+    // Steel blue palette - matched to logo (#33618B)
     blue: [
-      '#E8F4FD',
-      '#D1E9FB',
-      '#A3D3F7',
-      '#75BDF3',
-      '#47A7EF',
-      '#2563EB', // Primary - professional blue
-      '#1E4FD8',
-      '#173BC5',
-      '#1027B2',
-      '#0A139F',
+      '#EDF3F7',
+      '#D4E2ED',
+      '#B0C9DB',
+      '#8BAFC9',
+      '#6696B7',
+      '#4A7DA5', // Primary - logo blue
+      '#33618B', // Logo exact color
+      '#2A5275',
+      '#21435F',
+      '#183349',
     ],
     // Sophisticated purple accent for highlights
     violet: [
@@ -40,7 +40,7 @@ export const theme = createTheme({
       '#8AEDFF',
       '#5CE4FF',
       '#2EDBFF',
-      '#2563EB',
+      '#00D1FF',
       '#00B8E6',
       '#009FCC',
       '#0085B3',
@@ -57,7 +57,7 @@ export const theme = createTheme({
     highContrastText: '#FFFFFF',
     trueBlack: '#000000',
     // New professional accent colors
-    primaryBlue: '#2563EB',
+    primaryBlue: '#4A7DA5',
     accentPurple: '#8B5CF6',
   },
 });

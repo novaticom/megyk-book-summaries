@@ -24,7 +24,7 @@ export default async function NotFound() {
             size="lg"
             style={{
               fontWeight: 600,
-              backgroundColor: '#2563EB',
+              backgroundColor: '#4A7DA5',
               color: '#FFFFFF',
             }}
           >

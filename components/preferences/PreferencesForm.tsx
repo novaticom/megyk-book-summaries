@@ -170,10 +170,10 @@ export function PreferencesForm() {
               size="lg"
               styles={{
                 markLabel: { marginTop: 8, whiteSpace: 'nowrap' },
-                bar: { backgroundColor: '#2563EB', opacity: 0.8 },
+                bar: { backgroundColor: '#4A7DA5', opacity: 0.8 },
                 thumb: {
-                  borderColor: '#2563EB',
-                  backgroundColor: '#2563EB',
+                  borderColor: '#4A7DA5',
+                  backgroundColor: '#4A7DA5',
                   opacity: 0.8
                 }
               }}
@@ -221,10 +221,10 @@ export function PreferencesForm() {
               size="lg"
               styles={{
                 markLabel: { marginTop: 8, whiteSpace: 'nowrap' },
-                bar: { backgroundColor: '#2563EB', opacity: 0.8 },
+                bar: { backgroundColor: '#4A7DA5', opacity: 0.8 },
                 thumb: {
-                  borderColor: '#2563EB',
-                  backgroundColor: '#2563EB',
+                  borderColor: '#4A7DA5',
+                  backgroundColor: '#4A7DA5',
                   opacity: 0.8
                 }
               }}

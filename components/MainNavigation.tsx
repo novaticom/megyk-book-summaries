@@ -88,7 +88,7 @@ export function MainNavigation() {
             className="hover:opacity-80"
           >
             <img
-              src="/megyk.svg"
+              src="/new-logo.png"
               alt="Megyk Books"
               style={{ height: '120px', width: 'auto' }}
             />
@@ -96,7 +96,7 @@ export function MainNavigation() {
 
           {/* Desktop Navigation */}
           <Group gap="md" visibleFrom="sm">
-            {navLinks.map((link) => (
+            {isAuthenticated && navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}

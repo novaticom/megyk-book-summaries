@@ -642,7 +642,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
                   style={{
                     maxWidth: '80%',
                     borderRadius: 12,
-                    backgroundColor: message.role === 'user' ? '#2563eb' : '#f3f4f6',
+                    backgroundColor: message.role === 'user' ? '#4A7DA5' : '#f3f4f6',
                     color: message.role === 'user' ? '#ffffff' : '#111827',
                   }}
                 >
@@ -692,7 +692,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
           <Box px="md" pt="xs" pb={0}>
             <Group justify="space-between" gap="xs">
               <Group gap={4}>
-                <IconCoins size={12} style={{ color: canAffordChat ? '#2563EB' : '#dc2626' }} />
+                <IconCoins size={12} style={{ color: canAffordChat ? '#4A7DA5' : '#dc2626' }} />
                 <Text size="xs" c={canAffordChat ? 'dimmed' : 'red'}>
                   {t('costPerMessage', { cost: formatCredits(chatCost) })}
                 </Text>

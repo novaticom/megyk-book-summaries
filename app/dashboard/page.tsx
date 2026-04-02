@@ -73,11 +73,11 @@ function HeroSection({
   return (
     <Box 
       style={{
-        background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+        background: 'linear-gradient(135deg, #EDF3F7 0%, #D4E2ED 100%)',
         borderRadius: '16px',
         position: 'relative',
         overflow: 'hidden',
-        border: '1px solid rgba(37, 99, 235, 0.2)',
+        border: '1px solid rgba(74, 125, 165, 0.2)',
       }}
       p={{ base: 'lg', sm: 'xl', md: '3rem 2rem' }}
     >
@@ -108,7 +108,7 @@ function HeroSection({
                 boxShadow: 
                   '8px -6px 24px rgba(0, 0, 0, 0.15), ' +
                   '12px -10px 40px rgba(0, 0, 0, 0.1), ' +
-                  '4px -3px 12px rgba(37, 99, 235, 0.2)',
+                  '4px -3px 12px rgba(74, 125, 165, 0.2)',
               }}
             />
           </Box>
@@ -117,9 +117,9 @@ function HeroSection({
             size="md" 
             variant="filled"
             style={{ 
-              backgroundColor: '#2563EB',
+              backgroundColor: '#4A7DA5',
               color: '#FFFFFF',
-              border: '1px solid #2563EB',
+              border: '1px solid #4A7DA5',
             }}
           >
             {t('featured')}
@@ -157,8 +157,8 @@ function HeroSection({
                 height: 56,
                 '--button-bg': '#ffffff',
                 '--button-hover': '#f3f4f6',
-                '--button-color': '#2563EB',
-                '--button-bd': '1px solid rgba(37, 99, 235, 0.25)',
+                '--button-color': '#4A7DA5',
+                '--button-bd': '1px solid rgba(74, 125, 165, 0.25)',
               } as any
             }
             fullWidth
@@ -176,7 +176,7 @@ function HeroSection({
             style={{
               fontWeight: 600,
               height: 56,
-              backgroundColor: '#2563EB',
+              backgroundColor: '#4A7DA5',
               color: '#FFFFFF',
               border: '1px solid transparent',
             }}
@@ -217,7 +217,7 @@ function HeroSection({
               boxShadow: 
                 '12px -10px 35px rgba(0, 0, 0, 0.12), ' +
                 '18px -15px 60px rgba(0, 0, 0, 0.08), ' +
-                '6px -5px 18px rgba(37, 99, 235, 0.15)',
+                '6px -5px 18px rgba(74, 125, 165, 0.15)',
             }}
           />
         </Box>
@@ -228,9 +228,9 @@ function HeroSection({
             size="lg" 
             variant="filled"
             style={{ 
-              backgroundColor: '#2563EB',
+              backgroundColor: '#4A7DA5',
               color: '#FFFFFF',
-              border: '1px solid #2563EB',
+              border: '1px solid #4A7DA5',
               width: 'fit-content'
             }}
           >
@@ -266,8 +266,8 @@ function HeroSection({
                   height: 60,
                   '--button-bg': '#ffffff',
                   '--button-hover': '#f3f4f6',
-                  '--button-color': '#2563EB',
-                  '--button-bd': '1px solid rgba(37, 99, 235, 0.25)',
+                  '--button-color': '#4A7DA5',
+                  '--button-bd': '1px solid rgba(74, 125, 165, 0.25)',
                 } as any
               }
             >
@@ -284,7 +284,7 @@ function HeroSection({
               style={{
                 fontWeight: 600,
                 height: 60,
-                backgroundColor: '#2563EB',
+                backgroundColor: '#4A7DA5',
                 color: '#FFFFFF',
                 border: '1px solid transparent',
               }}
@@ -303,7 +303,7 @@ function HeroSection({
           right: '-50px',
           width: '300px',
           height: '300px',
-          background: 'radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(74, 125, 165, 0.1) 0%, transparent 70%)',
           borderRadius: '50%',
           pointerEvents: 'none',
         }}
@@ -558,7 +558,7 @@ export default function DashboardPage() {
                   transition: 'all 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.5)';
+                  e.currentTarget.style.borderColor = 'rgba(74, 125, 165, 0.5)';
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={(e) => {

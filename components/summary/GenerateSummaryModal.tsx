@@ -458,10 +458,10 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                         fontSize: '0.75rem',
                         transform: 'translateX(-50%)'
                       },
-                      bar: { backgroundColor: '#2563EB', opacity: 0.8 },
+                      bar: { backgroundColor: '#4A7DA5', opacity: 0.8 },
                       thumb: {
-                        borderColor: '#2563EB',
-                        backgroundColor: '#2563EB',
+                        borderColor: '#4A7DA5',
+                        backgroundColor: '#4A7DA5',
                         opacity: 0.8
                       }
                     }}
@@ -512,10 +512,10 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                         fontSize: '0.75rem',
                         transform: 'translateX(-50%)'
                       },
-                      bar: { backgroundColor: '#2563EB', opacity: 0.8 },
+                      bar: { backgroundColor: '#4A7DA5', opacity: 0.8 },
                       thumb: {
-                        borderColor: '#2563EB',
-                        backgroundColor: '#2563EB',
+                        borderColor: '#4A7DA5',
+                        backgroundColor: '#4A7DA5',
                         opacity: 0.8
                       }
                     }}
@@ -549,7 +549,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
               >
                 <Group justify="space-between" align="center">
                   <Group gap="xs">
-                    <IconCoins size={18} style={{ color: canAfford ? '#2563EB' : '#dc2626' }} />
+                    <IconCoins size={18} style={{ color: canAfford ? '#4A7DA5' : '#dc2626' }} />
                     <Text size="sm" fw={600}>
                       {t('cost', { cost: formatCredits(creditCost) })}
                     </Text>
@@ -595,7 +595,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                 loading={generating}
                 disabled={!book || !canAfford}
                 style={{
-                  backgroundColor: canAfford ? '#2563EB' : undefined,
+                  backgroundColor: canAfford ? '#4A7DA5' : undefined,
                   color: canAfford ? '#ffffff' : undefined,
                 }}
               >

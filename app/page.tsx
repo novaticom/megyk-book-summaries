@@ -61,7 +61,7 @@ export default function Home() {
                 onClick={() => router.push('/auth/signup')}
                 style={{
                   fontWeight: 600,
-                  backgroundColor: '#2563EB',
+                  backgroundColor: '#4A7DA5',
                   color: '#FFFFFF',
                 }}
               >

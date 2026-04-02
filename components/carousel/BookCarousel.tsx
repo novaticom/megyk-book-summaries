@@ -113,7 +113,7 @@ const BookCard = memo(function BookCard({
                     size="sm"
                     className={styles.generateButton}
                     style={{
-                      backgroundColor: '#2563EB',
+                      backgroundColor: '#4A7DA5',
                       color: '#ffffff',
                     }}
                     id={isFirstCard ? 'tour-book-get-summary' : undefined}
@@ -137,7 +137,7 @@ const BookCard = memo(function BookCard({
                     size="lg"
                     onClick={() => onOpenChat(book)}
                     aria-label={t('chatWithBook')}
-                    style={{ backgroundColor: 'rgba(243, 244, 246, 0.92)', color: '#2563EB' }}
+                    style={{ backgroundColor: 'rgba(243, 244, 246, 0.92)', color: '#4A7DA5' }}
                     id={isFirstCard ? 'tour-book-chat' : undefined}
                   >
                     <img
@@ -169,7 +169,7 @@ const BookCard = memo(function BookCard({
                     size="lg"
                     onClick={() => onOpenChat(book)}
                     aria-label={t('chatWithBook')}
-                    style={{ backgroundColor: 'rgba(243, 244, 246, 0.92)', color: '#2563EB' }}
+                    style={{ backgroundColor: 'rgba(243, 244, 246, 0.92)', color: '#4A7DA5' }}
                     id={isFirstCard ? 'tour-book-chat' : undefined}
                   >
                     <img
