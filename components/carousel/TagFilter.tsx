@@ -13,6 +13,7 @@ interface TagFilterProps {
 
 export function TagFilter({ tags, selectedTag, onTagSelect }: TagFilterProps) {
   const t = useTranslations('carousel');
+  const tTags = useTranslations('tags');
 
   const handleTagClick = (tagSlug: string | null) => {
     // If clicking the already selected tag, toggle it off (go back to "All")
@@ -45,7 +46,7 @@ export function TagFilter({ tags, selectedTag, onTagSelect }: TagFilterProps) {
           className={styles.tagPill}
           onClick={() => handleTagClick(tag.slug)}
         >
-          {tag.name}
+          {tTags.has(tag.name) ? tTags(tag.name as any) : tag.name}
         </Button>
       ))}
     </Box>

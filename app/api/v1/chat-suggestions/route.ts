@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getLocale } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,11 +88,13 @@ export async function POST(request: NextRequest) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
+    const locale = await getLocale();
+
     const webhookUrl = getChatSuggestionsUrl();
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ book_id: bookId }),
+      body: JSON.stringify({ book_id: bookId, locale }),
       signal: controller.signal,
     }).finally(() => clearTimeout(timeoutId));
 
