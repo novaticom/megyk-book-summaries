@@ -94,6 +94,11 @@ function HeroSection({
             style={{
               perspective: '1200px',
               position: 'relative',
+              width: 173,
+              height: 260,
+              overflow: 'hidden',
+              borderRadius: 8,
+              flexShrink: 0,
             }}
           >
             <Image
@@ -102,11 +107,10 @@ function HeroSection({
               h={260}
               w={173}
               fit="cover"
-              radius="md"
               style={{
                 transform: 'rotateX(-22deg) rotateY(12deg)',
                 transformStyle: 'preserve-3d',
-                boxShadow: 
+                boxShadow:
                   '8px -6px 24px rgba(0, 0, 0, 0.15), ' +
                   '12px -10px 40px rgba(0, 0, 0, 0.1), ' +
                   '4px -3px 12px rgba(74, 125, 165, 0.2)',
@@ -204,19 +208,22 @@ function HeroSection({
             display: 'flex',
             alignItems: 'center',
             perspective: '1500px',
+            width: 187,
+            height: 280,
+            overflow: 'hidden',
+            borderRadius: 8,
           }}
         >
           <Image
             src={currentBook.cover}
             alt={currentBook.title}
-            height={280}
-            width={187}
+            h={280}
+            w={187}
             fit="cover"
-            radius="md"
             style={{
               transform: 'rotateX(-25deg) rotateY(15deg)',
               transformStyle: 'preserve-3d',
-              boxShadow: 
+              boxShadow:
                 '12px -10px 35px rgba(0, 0, 0, 0.12), ' +
                 '18px -15px 60px rgba(0, 0, 0, 0.08), ' +
                 '6px -5px 18px rgba(74, 125, 165, 0.15)',
