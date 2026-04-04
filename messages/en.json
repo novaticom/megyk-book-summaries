@@ -134,7 +134,17 @@
     "save": "Save Preferences",
     "saveError": "Failed to save preferences",
     "unexpectedError": "An unexpected error occurred",
-    "timeoutError": "Request timeout - using default preferences"
+    "timeoutError": "Request timeout - using default preferences",
+    "styles": {
+      "narrative": "Narrative",
+      "bullet_points": "Bullet Points",
+      "workbook": "Workbook"
+    },
+    "lengths": {
+      "short": "Short",
+      "medium": "Medium",
+      "long": "Long"
+    }
   },
   "profile": {
     "title": "Profile Settings",

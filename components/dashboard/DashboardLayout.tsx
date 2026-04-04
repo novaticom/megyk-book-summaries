@@ -23,6 +23,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { TourHelpButton } from '@/components/tour/TourHelpButton';
 import { CreditBalance } from '@/components/credits';
+import { LocaleToggle } from '@/components/dashboard/LocaleToggle';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -233,6 +234,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <AppShell.Section grow p="md">
             {items}
             <TourHelpButton />
+            <LocaleToggle />
           </AppShell.Section>
         </AppShell.Navbar>
 
