@@ -131,7 +131,7 @@ export function ReferralShareSection() {
         <Group justify="space-between" align="flex-start">
           <div>
             <Group gap="xs" mb={4}>
-              <ThemeIcon size="md" radius="md" variant="light" color="violet">
+              <ThemeIcon size="md" radius="md" variant="light" color="blue">
                 <IconGift size={18} />
               </ThemeIcon>
               <Text fw={600} size="lg">
@@ -195,7 +195,7 @@ export function ReferralShareSection() {
             icon={<IconCoins size={20} />}
             label={t('creditsEarned')}
             value={`${(stats?.total_earned || 0).toLocaleString()} MC`}
-            color="violet"
+            color="blue"
           />
         </SimpleGrid>
 
@@ -226,11 +226,11 @@ export function ReferralShareSection() {
           </Stack>
           <Group gap="md" mt="md">
             <Group gap={4}>
-              <IconGift size={14} color="var(--mantine-color-violet-6)" />
+              <IconGift size={14} color="var(--mantine-color-blue-5)" />
               <Text size="sm" fw={500}>{t('youGet', { bonus: REFERRAL_REWARDS.referrer_bonus.toLocaleString() })}</Text>
             </Group>
             <Group gap={4}>
-              <IconGift size={14} color="var(--mantine-color-green-6)" />
+              <IconGift size={14} color="var(--mantine-color-blue-5)" />
               <Text size="sm" fw={500}>{t('theyGet', { bonus: REFERRAL_REWARDS.referred_bonus.toLocaleString() })}</Text>
             </Group>
           </Group>

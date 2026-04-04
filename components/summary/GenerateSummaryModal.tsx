@@ -571,11 +571,11 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                       {t('needMoreCredits', { amount: formatCredits(shortfall) })}
                     </Text>
                     <Group gap="xs" align="center">
-                      <IconGift size={14} style={{ color: 'var(--mantine-color-violet-6)' }} />
+                      <IconGift size={14} style={{ color: 'var(--mantine-color-blue-5)' }} />
                       <Text size="xs" c="dimmed">
                         <Text
                           span
-                          c="violet"
+                          c="blue"
                           fw={600}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setScreen('invite')}
@@ -650,12 +650,12 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
             p="md"
             radius="md"
             style={{
-              background: 'linear-gradient(135deg, var(--mantine-color-violet-0) 0%, var(--mantine-color-indigo-0) 100%)',
-              border: '1px solid var(--mantine-color-violet-2)',
+              background: 'linear-gradient(135deg, var(--mantine-color-blue-0) 0%, var(--mantine-color-blue-1) 100%)',
+              border: '1px solid var(--mantine-color-blue-2)',
             }}
           >
             <Group gap="sm" mb="md" wrap="nowrap">
-              <ThemeIcon size="lg" radius="md" variant="light" color="violet">
+              <ThemeIcon size="lg" radius="md" variant="light" color="blue">
                 <IconGift size={20} />
               </ThemeIcon>
               <div>

@@ -724,10 +724,10 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
             </Group>
             {!canAffordChat && (
               <Group gap={4} mt={4}>
-                <IconGift size={12} style={{ color: 'var(--mantine-color-violet-6)' }} />
+                <IconGift size={12} style={{ color: 'var(--mantine-color-blue-5)' }} />
                 <Text
                   size="xs"
-                  c="violet"
+                  c="blue"
                   fw={500}
                   style={{ cursor: 'pointer' }}
                   onClick={() => setShowInsufficientModal(true)}

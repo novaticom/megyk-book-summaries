@@ -170,12 +170,12 @@ export function InsufficientCreditsModal({
           p="md"
           radius="md"
           style={{
-            background: 'linear-gradient(135deg, var(--mantine-color-violet-0) 0%, var(--mantine-color-indigo-0) 100%)',
-            border: '1px solid var(--mantine-color-violet-2)',
+            background: 'linear-gradient(135deg, var(--mantine-color-blue-0) 0%, var(--mantine-color-blue-1) 100%)',
+            border: '1px solid var(--mantine-color-blue-2)',
           }}
         >
           <Group gap="sm" mb="md" wrap="nowrap">
-            <ThemeIcon size="lg" radius="md" variant="light" color="violet">
+            <ThemeIcon size="lg" radius="md" variant="light" color="blue">
               <IconGift size={20} />
             </ThemeIcon>
             <div>
