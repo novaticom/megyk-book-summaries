@@ -134,7 +134,17 @@
     "save": "Einstellungen speichern",
     "saveError": "Einstellungen konnten nicht gespeichert werden.",
     "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten.",
-    "timeoutError": "Zeitüberschreitung – Standardeinstellungen werden verwendet."
+    "timeoutError": "Zeitüberschreitung – Standardeinstellungen werden verwendet.",
+    "styles": {
+      "narrative": "Erzählend",
+      "bullet_points": "Stichpunkte",
+      "workbook": "Arbeitsbuch"
+    },
+    "lengths": {
+      "short": "Kurz",
+      "medium": "Mittel",
+      "long": "Lang"
+    }
   },
   "profile": {
     "title": "Profileinstellungen",

@@ -10,7 +10,6 @@ import { ChatSessionWithBook } from '@/lib/types/chat'
 import { ChatBookCard } from '@/components/chat/ChatBookCard'
 import { ChatWithBook } from '@/components/chat/ChatWithBook'
 import { getDisplayTitle } from '@/lib/utils/bookTitle'
-import { SUMMARY_STYLE_OPTIONS, SUMMARY_LENGTH_OPTIONS } from '@/lib/types/preferences'
 import { trackSummaryDownloaded } from '@/lib/analytics/gtm'
 import styles from './summaries.module.css'
 
@@ -35,6 +34,7 @@ const getFallbackPlaceholder = (book: any) => {
 export default function SummariesPage() {
   const t = useTranslations('summaries')
   const tCommon = useTranslations('common')
+  const tPrefs = useTranslations('preferences')
   const locale = useLocale()
   const [summaries, setSummaries] = useState<SummaryWithBook[]>([])
   const [loading, setLoading] = useState(true)
@@ -161,11 +161,11 @@ export default function SummariesPage() {
   }
 
   const getStyleLabel = (style: string) => {
-    return SUMMARY_STYLE_OPTIONS.find(opt => opt.value === style)?.label || style
+    try { return tPrefs(`styles.${style}`) } catch { return style }
   }
 
   const getLengthLabel = (length: string) => {
-    return SUMMARY_LENGTH_OPTIONS.find(opt => opt.value === length)?.label || length
+    try { return tPrefs(`lengths.${length}`) } catch { return length }
   }
 
   const handleResumeChat = (session: ChatSessionWithBook) => {
