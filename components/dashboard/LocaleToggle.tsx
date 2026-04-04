@@ -18,7 +18,7 @@ export function LocaleToggle() {
   };
 
   return (
-    <Group gap={6} justify="center">
+    <Group gap={4} px={4} pt={4}>
       {LOCALES.map(({ code, flag, label }) => {
         const active = locale === code;
         return (
@@ -28,9 +28,8 @@ export function LocaleToggle() {
             title={label}
             style={{
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
-              gap: 2,
+              gap: 6,
               padding: '6px 10px',
               borderRadius: 8,
               border: active ? '2px solid #2563EB' : '2px solid transparent',
@@ -40,7 +39,10 @@ export function LocaleToggle() {
               cursor: active ? 'default' : 'pointer',
             }}
           >
-            <Text style={{ fontSize: 22, lineHeight: 1 }}>{flag}</Text>
+            <Text style={{ fontSize: 20, lineHeight: 1 }}>{flag}</Text>
+            <Text size="sm" fw={active ? 600 : 400} c={active ? '#2563EB' : 'dimmed'}>
+              {label}
+            </Text>
           </UnstyledButton>
         );
       })}

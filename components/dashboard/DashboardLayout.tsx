@@ -234,13 +234,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <AppShell.Section grow p="md">
             {items}
             <TourHelpButton />
-          </AppShell.Section>
-
-          {/* Language Toggle */}
-          <AppShell.Section
-            p="md"
-            style={{ borderTop: '1px solid #e5e7eb' }}
-          >
             <LocaleToggle />
           </AppShell.Section>
         </AppShell.Navbar>
