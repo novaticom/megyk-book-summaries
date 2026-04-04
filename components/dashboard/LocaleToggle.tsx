@@ -22,7 +22,6 @@ export function LocaleToggle() {
       onChange={setLocale}
       data={LOCALES}
       size="sm"
-      fullWidth
       mt={4}
     />
   );
