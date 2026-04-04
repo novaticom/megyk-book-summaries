@@ -38,18 +38,29 @@ interface FormattedSummaryStandard {
   INSIGHTS_LI: string[]
 }
 
-// Workbook format
+// Workbook format (can have QUESTIONS array or QUESTION string)
 interface FormattedSummaryWorkbook {
   TITLE: string
   AUTHOR: string
   STEPS: {
     SUMMARY: string
-    QUESTIONS: string[]
+    QUESTIONS?: string[]
+    QUESTION?: string
   }
   INSIGHTS: {
     SUMMARY: string
-    QUESTIONS: string[]
+    QUESTIONS?: string[]
+    QUESTION?: string
   }
+  // Short workbook has additional sections
+  CORE_IDEA?: string
+  KEY_THEMES?: { SUMMARY: string; QUESTION?: string }
+  MAIN_THESIS?: { SUMMARY: string; QUESTION?: string }
+  PROBLEM_SOLVED?: { SUMMARY: string; QUESTION?: string }
+  WHY_IT_MATTERS?: { SUMMARY: string; QUESTION?: string }
+  WHO_THIS_BOOK_IS_FOR?: { SUMMARY: string; QUESTION?: string }
+  INTEGRATION?: { SUMMARY: string; QUESTION?: string }
+  TLDR_QUOTE_OR_SUMMARY_LINE?: string
 }
 
 type FormattedSummary = FormattedSummaryStandard | FormattedSummaryWorkbook
@@ -188,52 +199,70 @@ async function translateFormattedSummary(
   openai: OpenAI
 ): Promise<FormattedSummary> {
   if (isWorkbookFormat(formatted)) {
-    // Workbook format: STEPS.SUMMARY, STEPS.QUESTIONS[], INSIGHTS.SUMMARY, INSIGHTS.QUESTIONS[]
-    const textsToTranslate = [
-      formatted.STEPS.SUMMARY,
-      ...formatted.STEPS.QUESTIONS,
-      formatted.INSIGHTS.SUMMARY,
-      ...formatted.INSIGHTS.QUESTIONS,
-    ]
+    // Workbook format - collect all translatable strings dynamically
+    const textsToTranslate: string[] = []
+    const structure: { key: string; subkey?: string; isArray?: boolean; count?: number }[] = []
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a professional translator. Translate the following texts from English to German. Maintain clarity and professional tone.`
-        },
-        {
-          role: 'user',
-          content: `Translate these workbook components to German. Return ONLY a JSON array of translated strings in the exact same order. No markdown, no explanation.
-
-Texts to translate:
-${JSON.stringify(textsToTranslate, null, 2)}`
-        }
-      ],
-      max_tokens: 3000,
-      temperature: 0.3,
-    })
-
-    const raw = response.choices[0].message.content ?? '[]'
-    const json = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
-    const translated: string[] = JSON.parse(json)
-
-    const stepsQCount = formatted.STEPS.QUESTIONS.length
-    const insightsQCount = formatted.INSIGHTS.QUESTIONS.length
-
-    return {
-      TITLE: germanBookTitle,
-      AUTHOR: formatted.AUTHOR,
-      STEPS: {
-        SUMMARY: translated[0] ?? formatted.STEPS.SUMMARY,
-        QUESTIONS: translated.slice(1, 1 + stepsQCount),
-      },
-      INSIGHTS: {
-        SUMMARY: translated[1 + stepsQCount] ?? formatted.INSIGHTS.SUMMARY,
-        QUESTIONS: translated.slice(2 + stepsQCount, 2 + stepsQCount + insightsQCount),
-      },
+    // Helper to add text and track structure
+    const addText = (key: string, subkey: string | undefined, value: string | string[] | undefined) => {
+      if (!value) return
+      if (Array.isArray(value)) {
+        textsToTranslate.push(...value)
+        structure.push({ key, subkey, isArray: true, count: value.length })
+      } else {
+        textsToTranslate.push(value)
+        structure.push({ key, subkey, isArray: false })
+      }
     }
+
+    // Core sections
+    addText('STEPS', 'SUMMARY', formatted.STEPS.SUMMARY)
+    addText('STEPS', 'QUESTIONS', formatted.STEPS.QUESTIONS)
+    addText('STEPS', 'QUESTION', formatted.STEPS.QUESTION)
+    addText('INSIGHTS', 'SUMMARY', formatted.INSIGHTS.SUMMARY)
+    addText('INSIGHTS', 'QUESTIONS', formatted.INSIGHTS.QUESTIONS)
+    addText('INSIGHTS', 'QUESTION', formatted.INSIGHTS.QUESTION)
+
+    // Additional short workbook sections
+    addText('CORE_IDEA', undefined, formatted.CORE_IDEA)
+    addText('TLDR_QUOTE_OR_SUMMARY_LINE', undefined, formatted.TLDR_QUOTE_OR_SUMMARY_LINE)
+
+    const additionalSections = ['KEY_THEMES', 'MAIN_THESIS', 'PROBLEM_SOLVED', 'WHY_IT_MATTERS', 'WHO_THIS_BOOK_IS_FOR', 'INTEGRATION'] as const
+    for (const section of additionalSections) {
+      const s = formatted[section]
+      if (s) {
+        addText(section, 'SUMMARY', s.SUMMARY)
+        addText(section, 'QUESTION', s.QUESTION)
+      }
+    }
+
+    const translated = await translateWithRetry(
+      textsToTranslate,
+      'You are a professional translator. Translate the following texts from English to German. Maintain clarity and professional tone.',
+      'Translate these workbook components to German. Return ONLY a JSON array of translated strings in the exact same order. No markdown, no explanation.',
+      openai
+    )
+
+    // Reconstruct the object
+    const result: any = { TITLE: germanBookTitle, AUTHOR: formatted.AUTHOR }
+    let idx = 0
+
+    for (const s of structure) {
+      if (!result[s.key] && s.subkey) result[s.key] = {}
+
+      if (s.isArray) {
+        const arr = translated.slice(idx, idx + (s.count ?? 0))
+        if (s.subkey) result[s.key][s.subkey] = arr
+        else result[s.key] = arr
+        idx += s.count ?? 0
+      } else {
+        if (s.subkey) result[s.key][s.subkey] = translated[idx]
+        else result[s.key] = translated[idx]
+        idx++
+      }
+    }
+
+    return result as FormattedSummaryWorkbook
   } else {
     // Standard format: CORE_IDEA, STEPS_LI[], INSIGHTS_LI[]
     const textsToTranslate = [
