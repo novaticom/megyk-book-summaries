@@ -180,6 +180,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <Box visibleFrom="sm" />
 
             <Group gap="md">
+              {/* Mobile language toggle */}
+              <Box hiddenFrom="sm">
+                <LocaleToggle compact />
+              </Box>
               <CreditBalance compact />
               {userEmail && (
                 <Text size="sm" c="dimmed" visibleFrom="sm">
