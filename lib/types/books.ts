@@ -25,6 +25,7 @@ export interface Book {
   cover_image_url_de?: string
   page_count?: number
   default_summary_pdf_url?: string
+  default_summary_pdf_url_de?: string
   translations?: BookTranslations
   tags?: BookTag[]
   created_at: string

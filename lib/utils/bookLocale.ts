@@ -22,11 +22,15 @@ export function localizeBook(book: Book, locale: string): Book {
   const localizedCover = locale === 'de' && book.cover_image_url_de
     ? { cover_image_url: addCacheBuster(book.cover_image_url_de, GERMAN_COVER_VERSION) }
     : {}
+  const localizedSummaryPdf = locale === 'de' && book.default_summary_pdf_url_de
+    ? { default_summary_pdf_url: book.default_summary_pdf_url_de }
+    : {}
 
   return {
     ...book,
     ...(t ? { title: t.title ?? book.title, summary: t.summary ?? book.summary } : {}),
     ...localizedCover,
+    ...localizedSummaryPdf,
   }
 }
 
