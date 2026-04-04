@@ -22,7 +22,6 @@ import {
   IconSparkles,
 } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
-import { SUMMARY_STYLE_OPTIONS, SUMMARY_LENGTH_OPTIONS } from '@/lib/types/preferences';
 import { BookCarousel } from '@/components/carousel/BookCarousel';
 import { TagFilter } from '@/components/carousel/TagFilter';
 import { ChatWithBook } from '@/components/chat/ChatWithBook';
@@ -307,6 +306,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
+  const tPrefs = useTranslations('preferences');
   const [recentSummaries, setRecentSummaries] = useState<RecentSummary[]>([]);
   const [recommendedBooks, setRecommendedBooks] = useState<Book[]>([]);
   const [availableTags, setAvailableTags] = useState<BookTag[]>([]);
@@ -571,10 +571,10 @@ export default function DashboardPage() {
                   </Group>
                   <Group gap="xs">
                     <Badge size="sm" variant="light" color="green">
-                      {SUMMARY_STYLE_OPTIONS.find(opt => opt.value === summary.style)?.label || summary.style}
+                      {(() => { try { return tPrefs(`styles.${summary.style}`) } catch { return summary.style } })()}
                     </Badge>
                     <Badge size="sm" variant="light" color="blue">
-                      {SUMMARY_LENGTH_OPTIONS.find(opt => opt.value === summary.length)?.label || summary.length}
+                      {(() => { try { return tPrefs(`lengths.${summary.length}`) } catch { return summary.length } })()}
                     </Badge>
                   </Group>
                 </Stack>
