@@ -8,6 +8,7 @@ export interface Summary {
   book_id: string
   style: string
   length: string
+  locale: string
   file_path: string
   tokens_spent: number | null
   generation_time: number | null

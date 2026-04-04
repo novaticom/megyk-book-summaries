@@ -131,8 +131,9 @@ export async function POST(request: NextRequest) {
         // Stream PDF binary directly to browser
         const pdfBuffer = await webhookResponse.arrayBuffer()
 
-        // Stable storage path per user/book/style/length for idempotency
-        const storagePath = `${user.id}/${book_id}/${preferences.length}_${preferences.style}.pdf`
+        // Stable storage path per user/book/style/length/locale for idempotency
+        // Include locale in path so en/de PDFs don't overwrite each other
+        const storagePath = `${user.id}/${book_id}/${preferences.length}_${preferences.style}_${locale}.pdf`
 
         // Upload PDF to Supabase Storage
         const { error: uploadError } = await supabase.storage
@@ -150,7 +151,7 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Create database record
+        // Create database record (includes locale for i18n support)
         const { data: summaryData, error: summaryError } = await supabase
           .from('summaries')
           .upsert({
@@ -158,11 +159,12 @@ export async function POST(request: NextRequest) {
             book_id,
             style: preferences.style,
             length: preferences.length,
+            locale,
             file_path: storagePath,
             tokens_spent: tokensSpent ? parseInt(tokensSpent) : null,
             generation_time: generationTime ? parseFloat(generationTime) : null,
           }, {
-            onConflict: 'user_id,book_id,style,length'
+            onConflict: 'user_id,book_id,style,length,locale'
           })
           .select()
           .single()

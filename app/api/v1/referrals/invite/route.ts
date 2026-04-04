@@ -49,6 +49,11 @@ export async function POST(request: NextRequest) {
     const inviterName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'A friend'
 
     // Send the invite email
+    if (!process.env.RESEND_API_KEY) {
+      console.error('RESEND_API_KEY is not configured')
+      return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
+    }
+
     const resend = new Resend(process.env.RESEND_API_KEY)
 
     const friendName = name || 'there'
@@ -133,7 +138,8 @@ megyk.com
       messageId: data?.id,
     })
   } catch (error) {
-    console.error('Error sending invite:', error)
+    console.error('Error sending invite:', error instanceof Error ? error.message : error)
+    console.error('Stack:', error instanceof Error ? error.stack : 'No stack')
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
