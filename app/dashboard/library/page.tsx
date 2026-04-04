@@ -234,7 +234,7 @@ export default function LibraryPage() {
                         radius="md"
                         h={120}
                         w={80}
-                      />
+                                              />
                     </Box>
 
                     {/* Book Details */}
@@ -368,7 +368,7 @@ export default function LibraryPage() {
                             h={80}
                             w={60}
                             className={styles.bookCover}
-                          />
+                                                      />
                         </Box>
                       </Table.Td>
                       <Table.Td>

@@ -203,7 +203,8 @@ ${JSON.stringify(texts, null, 2)}`,
 
 const MIN_FONT_SIZE = 10
 const GAP_RATIO = 0.015   // minimum gap between elements as fraction of image height
-const MARGIN_RATIO = 0.04 // top/bottom margin as fraction of image height
+const MARGIN_RATIO = 0.02 // top/bottom margin as fraction of image height (reduced from 0.04)
+const Y_SHIFT_PERCENT = -12 // shift all text up by this % of image height (negative = up)
 
 /** Measure the pixel width of a single word at a given font size. */
 function measureWordWidth(word: string, font: string, fontSize: number): number {
@@ -319,8 +320,9 @@ function buildCover(
   for (let i = 0; i < rendered.length; i++) {
     const { el, renderedHeight } = rendered[i]
 
-    // Desired top from Vision hint
-    let yTop = Math.round((el.yTopPercent / 100) * height)
+    // Desired top from Vision hint, shifted up to reduce whitespace
+    const adjustedYPercent = el.yTopPercent + Y_SHIFT_PERCENT
+    let yTop = Math.round((adjustedYPercent / 100) * height)
 
     // Clamp: must not start above previous element's bottom + gap
     yTop = Math.max(yTop, cursor)

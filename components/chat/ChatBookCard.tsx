@@ -70,7 +70,7 @@ export function ChatBookCard({ session, onClick }: ChatBookCardProps) {
           fit="cover"
           h="100%"
           w="100%"
-        />
+                  />
         {/* Overlay gradient for text readability */}
         <Box
           style={{

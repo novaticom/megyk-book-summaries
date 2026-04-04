@@ -329,7 +329,7 @@ export default function SummariesPage() {
                                 radius="md"
                                 h={100}
                                 w={67}
-                              />
+                                                              />
                             </Box>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <Text fw={700} size="xl" lineClamp={2}>
@@ -408,7 +408,7 @@ export default function SummariesPage() {
                               h={120}
                               w={80}
                               className={styles.bookCover}
-                            />
+                                                          />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <Text fw={700} size="xl">
                                 {getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || tCommon('unknownBook')}
