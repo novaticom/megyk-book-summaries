@@ -31,6 +31,7 @@ interface GenerateSummaryModalProps {
 export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryModalProps) {
   const t = useTranslations('summary')
   const tCommon = useTranslations('common')
+  const tPrefs = useTranslations('preferences')
   const [screen, setScreen] = useState<ModalScreen>('summary')
   const [styleIndex, setStyleIndex] = useState(
     SUMMARY_STYLE_OPTIONS.findIndex(opt => opt.value === DEFAULT_PREFERENCES.style)
@@ -448,7 +449,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                     step={1}
                     marks={SUMMARY_STYLE_OPTIONS.map((option, index) => ({
                       value: index,
-                      label: option.label
+                      label: tPrefs(`styles.${option.value}`)
                     }))}
                     size="lg"
                     styles={{
@@ -476,10 +477,10 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                   }}
                 >
                   <Text fw={600} size="md" mb="xs">
-                    {SUMMARY_STYLE_OPTIONS[styleIndex].label}
+                    {tPrefs(`styles.${SUMMARY_STYLE_OPTIONS[styleIndex].value}`)}
                   </Text>
                   <Text size="sm" c="dimmed">
-                    {SUMMARY_STYLE_OPTIONS[styleIndex].description}
+                    {tPrefs(`styles.${SUMMARY_STYLE_OPTIONS[styleIndex].value}_desc`)}
                   </Text>
                 </Box>
               </Stack>
@@ -502,7 +503,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                     step={1}
                     marks={SUMMARY_LENGTH_OPTIONS.map((option, index) => ({
                       value: index,
-                      label: option.label
+                      label: tPrefs(`lengths.${option.value}`)
                     }))}
                     size="lg"
                     styles={{
@@ -530,10 +531,10 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                   }}
                 >
                   <Text fw={600} size="md" mb="xs">
-                    {SUMMARY_LENGTH_OPTIONS[lengthIndex].label}
+                    {tPrefs(`lengths.${SUMMARY_LENGTH_OPTIONS[lengthIndex].value}`)}
                   </Text>
                   <Text size="sm" c="dimmed">
-                    {SUMMARY_LENGTH_OPTIONS[lengthIndex].description}
+                    {tPrefs(`lengths.${SUMMARY_LENGTH_OPTIONS[lengthIndex].value}_desc`)}
                   </Text>
                 </Box>
               </Stack>

@@ -28,6 +28,7 @@ import styles from './OnboardingWizard.module.css'
 
 export function OnboardingWizard() {
   const t = useTranslations('onboarding')
+  const tPrefs = useTranslations('preferences')
   const router = useRouter()
   const [active, setActive] = useState(0)
   const [styleIndex, setStyleIndex] = useState(
@@ -131,7 +132,7 @@ export function OnboardingWizard() {
                         step={1}
                         marks={SUMMARY_STYLE_OPTIONS.map((option, index) => ({
                           value: index,
-                          label: option.label
+                          label: tPrefs(`styles.${option.value}`)
                         }))}
                         size="lg"
                         styles={{
@@ -153,10 +154,10 @@ export function OnboardingWizard() {
                       }}
                     >
                       <Text fw={600} size="lg" mb="xs">
-                        {SUMMARY_STYLE_OPTIONS[styleIndex].label}
+                        {tPrefs(`styles.${SUMMARY_STYLE_OPTIONS[styleIndex].value}`)}
                       </Text>
                       <Text size="md" c="dimmed">
-                        {SUMMARY_STYLE_OPTIONS[styleIndex].description}
+                        {tPrefs(`styles.${SUMMARY_STYLE_OPTIONS[styleIndex].value}_desc`)}
                       </Text>
                     </Box>
                   </Stack>
@@ -186,7 +187,7 @@ export function OnboardingWizard() {
                         step={1}
                         marks={SUMMARY_LENGTH_OPTIONS.map((option, index) => ({
                           value: index,
-                          label: option.label
+                          label: tPrefs(`lengths.${option.value}`)
                         }))}
                         size="lg"
                         styles={{
@@ -208,10 +209,10 @@ export function OnboardingWizard() {
                       }}
                     >
                       <Text fw={600} size="lg" mb="xs">
-                        {SUMMARY_LENGTH_OPTIONS[lengthIndex].label}
+                        {tPrefs(`lengths.${SUMMARY_LENGTH_OPTIONS[lengthIndex].value}`)}
                       </Text>
                       <Text size="md" c="dimmed">
-                        {SUMMARY_LENGTH_OPTIONS[lengthIndex].description}
+                        {tPrefs(`lengths.${SUMMARY_LENGTH_OPTIONS[lengthIndex].value}_desc`)}
                       </Text>
                     </Box>
                   </Stack>

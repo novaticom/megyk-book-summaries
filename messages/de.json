@@ -137,13 +137,19 @@
     "timeoutError": "Zeitüberschreitung – Standardeinstellungen werden verwendet.",
     "styles": {
       "narrative": "Erzählend",
+      "narrative_desc": "Erzählerischer Fluss mit verbundenen Ideen",
       "bullet_points": "Stichpunkte",
-      "workbook": "Arbeitsbuch"
+      "bullet_points_desc": "Schnelle, übersichtliche Kernpunkte",
+      "workbook": "Arbeitsbuch",
+      "workbook_desc": "Interaktive Übungen und Reflexionen"
     },
     "lengths": {
       "short": "Kurz",
+      "short_desc": "Ein Satz pro Kapitel",
       "medium": "Mittel",
-      "long": "Lang"
+      "medium_desc": "Ein Absatz pro Kapitel",
+      "long": "Lang",
+      "long_desc": "Eine Seite pro Kapitel"
     }
   },
   "profile": {

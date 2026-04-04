@@ -165,7 +165,7 @@ export function PreferencesForm() {
               step={1}
               marks={SUMMARY_STYLE_OPTIONS.map((option, index) => ({
                 value: index,
-                label: option.label
+                label: t(`styles.${option.value}`)
               }))}
               size="lg"
               styles={{
@@ -188,10 +188,10 @@ export function PreferencesForm() {
             }}
           >
             <Text fw={600} size="lg" mb="xs">
-              {SUMMARY_STYLE_OPTIONS[styleIndex].label}
+              {t(`styles.${SUMMARY_STYLE_OPTIONS[styleIndex].value}`)}
             </Text>
             <Text size="md" c="dimmed">
-              {SUMMARY_STYLE_OPTIONS[styleIndex].description}
+              {t(`styles.${SUMMARY_STYLE_OPTIONS[styleIndex].value}_desc`)}
             </Text>
           </Box>
         </Stack>
@@ -216,7 +216,7 @@ export function PreferencesForm() {
               step={1}
               marks={SUMMARY_LENGTH_OPTIONS.map((option, index) => ({
                 value: index,
-                label: option.label
+                label: t(`lengths.${option.value}`)
               }))}
               size="lg"
               styles={{
@@ -239,10 +239,10 @@ export function PreferencesForm() {
             }}
           >
             <Text fw={600} size="lg" mb="xs">
-              {SUMMARY_LENGTH_OPTIONS[lengthIndex].label}
+              {t(`lengths.${SUMMARY_LENGTH_OPTIONS[lengthIndex].value}`)}
             </Text>
             <Text size="md" c="dimmed">
-              {SUMMARY_LENGTH_OPTIONS[lengthIndex].description}
+              {t(`lengths.${SUMMARY_LENGTH_OPTIONS[lengthIndex].value}_desc`)}
             </Text>
           </Box>
         </Stack>

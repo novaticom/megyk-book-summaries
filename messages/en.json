@@ -137,13 +137,19 @@
     "timeoutError": "Request timeout - using default preferences",
     "styles": {
       "narrative": "Narrative",
+      "narrative_desc": "Story-like flow with connected ideas",
       "bullet_points": "Bullet Points",
-      "workbook": "Workbook"
+      "bullet_points_desc": "Quick, scannable key points",
+      "workbook": "Workbook",
+      "workbook_desc": "Interactive exercises and reflections"
     },
     "lengths": {
       "short": "Short",
+      "short_desc": "One sentence per chapter",
       "medium": "Medium",
-      "long": "Long"
+      "medium_desc": "One paragraph per chapter",
+      "long": "Long",
+      "long_desc": "One page per chapter"
     }
   },
   "profile": {
