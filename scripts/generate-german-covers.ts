@@ -28,9 +28,58 @@ config({ path: path.join(process.cwd(), '.env.local') })
 
 // ─── Config ────────────────────────────────────────────────────────────────
 
-const MAGICK = '/opt/homebrew/bin/magick'
-const FONT_EXTRABOLD = path.join(os.homedir(), 'Library/Fonts/Oswald-Bold.ttf')
-const FONT_BOLD = path.join(os.homedir(), 'Library/Fonts/Oswald-SemiBold.ttf')
+// Auto-detect ImageMagick binary (v7 uses 'magick', v6 uses 'convert')
+function findMagick(): { convert: string; identify: string; composite: string } {
+  try {
+    // Try ImageMagick 7 first
+    const magickPath = spawnSync('which', ['magick'], { encoding: 'utf8' }).stdout.trim()
+    if (magickPath && fs.existsSync(magickPath)) {
+      return { convert: magickPath, identify: magickPath, composite: magickPath }
+    }
+  } catch {}
+  try {
+    // Fall back to ImageMagick 6
+    const convertPath = spawnSync('which', ['convert'], { encoding: 'utf8' }).stdout.trim()
+    const identifyPath = spawnSync('which', ['identify'], { encoding: 'utf8' }).stdout.trim()
+    const compositePath = spawnSync('which', ['composite'], { encoding: 'utf8' }).stdout.trim()
+    if (convertPath && fs.existsSync(convertPath)) {
+      return { convert: convertPath, identify: identifyPath, composite: compositePath }
+    }
+  } catch {}
+  throw new Error('ImageMagick not found. Install with: sudo apt-get install imagemagick')
+}
+
+const MAGICK_CMDS = findMagick()
+const IS_MAGICK_V7 = MAGICK_CMDS.convert.includes('magick')
+
+// Font paths - check common locations
+function findFont(names: string[]): string {
+  const searchPaths = [
+    path.join(os.homedir(), 'Library/Fonts'),  // macOS user fonts
+    '/usr/share/fonts/truetype',                // Linux system fonts
+    '/usr/share/fonts',                         // Linux fonts
+    '/usr/local/share/fonts',                   // Linux local fonts
+  ]
+  for (const dir of searchPaths) {
+    for (const name of names) {
+      const fontPath = path.join(dir, name)
+      if (fs.existsSync(fontPath)) return fontPath
+      // Check subdirectories
+      try {
+        const subdirs = fs.readdirSync(dir)
+        for (const subdir of subdirs) {
+          const subFontPath = path.join(dir, subdir, name)
+          if (fs.existsSync(subFontPath)) return subFontPath
+        }
+      } catch {}
+    }
+  }
+  // Fallback to a generic sans-serif font name (ImageMagick will use system default)
+  return 'DejaVu-Sans-Bold'
+}
+
+const FONT_EXTRABOLD = findFont(['Oswald-Bold.ttf', 'DejaVuSans-Bold.ttf', 'LiberationSans-Bold.ttf'])
+const FONT_BOLD = findFont(['Oswald-SemiBold.ttf', 'DejaVuSans.ttf', 'LiberationSans-Regular.ttf'])
 const TMP_DIR = '/tmp/german-covers'
 const STORAGE_BUCKET = 'book-covers'
 const STORAGE_PREFIX = 'covers-de'
@@ -64,19 +113,46 @@ interface Book {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function magick(...args: string[]): void {
-  const result = spawnSync(MAGICK, args, { encoding: 'utf8' })
+/**
+ * Run ImageMagick convert command (handles v6 vs v7 syntax)
+ * For v7: magick <args>
+ * For v6: convert <args>
+ */
+function magickConvert(...args: string[]): void {
+  const cmd = IS_MAGICK_V7 ? MAGICK_CMDS.convert : MAGICK_CMDS.convert
+  const result = spawnSync(cmd, args, { encoding: 'utf8' })
   if (result.status !== 0) {
-    throw new Error(`ImageMagick failed:\n${result.stderr}`)
+    throw new Error(`ImageMagick convert failed:\n${result.stderr}`)
   }
 }
 
-function magickOutput(...args: string[]): string {
-  const result = spawnSync(MAGICK, args, { encoding: 'utf8' })
+/**
+ * Run ImageMagick identify command
+ * For v7: magick identify <args>
+ * For v6: identify <args>
+ */
+function magickIdentify(...args: string[]): string {
+  const cmd = MAGICK_CMDS.identify
+  const fullArgs = IS_MAGICK_V7 ? ['identify', ...args] : args
+  const result = spawnSync(cmd, fullArgs, { encoding: 'utf8' })
   if (result.status !== 0) {
-    throw new Error(`ImageMagick failed:\n${result.stderr}`)
+    throw new Error(`ImageMagick identify failed:\n${result.stderr}`)
   }
   return result.stdout.trim()
+}
+
+/**
+ * Run ImageMagick composite command
+ * For v7: magick composite <args>
+ * For v6: composite <args>
+ */
+function magickComposite(...args: string[]): void {
+  const cmd = IS_MAGICK_V7 ? MAGICK_CMDS.composite : MAGICK_CMDS.composite
+  const fullArgs = IS_MAGICK_V7 ? ['composite', ...args] : args
+  const result = spawnSync(cmd, fullArgs, { encoding: 'utf8' })
+  if (result.status !== 0) {
+    throw new Error(`ImageMagick composite failed:\n${result.stderr}`)
+  }
 }
 
 function tmpPath(bookId: string, suffix: string): string {
@@ -208,11 +284,9 @@ const Y_SHIFT_PERCENT = -12 // shift all text up by this % of image height (nega
 
 /** Measure the pixel width of a single word at a given font size. */
 function measureWordWidth(word: string, font: string, fontSize: number): number {
-  const result = spawnSync(
-    MAGICK,
-    ['-font', font, '-pointsize', String(fontSize), `label:${escapeForMagick(word)}`, '-format', '%w', 'info:'],
-    { encoding: 'utf8' },
-  )
+  const cmd = MAGICK_CMDS.convert
+  const args = ['-font', font, '-pointsize', String(fontSize), `label:${escapeForMagick(word)}`, '-format', '%w', 'info:']
+  const result = spawnSync(cmd, args, { encoding: 'utf8' })
   return parseInt(result.stdout.trim(), 10) || 9999
 }
 
@@ -243,7 +317,7 @@ function renderText(
   }
 
   while (size >= MIN_FONT_SIZE) {
-    magick(
+    magickConvert(
       '-background', 'transparent',
       '-fill', color,
       '-font', font,
@@ -253,14 +327,14 @@ function renderText(
       `caption:${escapeForMagick(text)}`,
       outputFile,
     )
-    const h = parseInt(magickOutput('identify', '-format', '%h', outputFile), 10)
+    const h = parseInt(magickIdentify('-format', '%h', outputFile), 10)
     const fitsHeight = h <= maxHeight
     const fitsSingleLine = !enforceSingleLine || h <= Math.round(size * 1.6)
     if (fitsHeight && fitsSingleLine) return { renderedHeight: h, finalFontSize: size }
     size = Math.max(MIN_FONT_SIZE, Math.round(size * 0.88))
   }
 
-  const h = parseInt(magickOutput('identify', '-format', '%h', outputFile), 10)
+  const h = parseInt(magickIdentify('-format', '%h', outputFile), 10)
   return { renderedHeight: h, finalFontSize: size }
 }
 
@@ -336,7 +410,7 @@ function buildCover(
 
   // ── Pass 3: composite text layers onto solid background ──────────────────
   const bgPath = `${outputPath}.bg.png`
-  magick('-size', `${width}x${height}`, `xc:${backgroundColor}`, bgPath)
+  magickConvert('-size', `${width}x${height}`, `xc:${backgroundColor}`, bgPath)
   tempFiles.push(bgPath)
 
   let currentBase = bgPath
@@ -346,8 +420,7 @@ function buildCover(
     const yTop = yPositions[i]
     const composited = `${outputPath}.comp${i}.png`
 
-    magick(
-      'composite',
+    magickComposite(
       '-gravity', 'NorthWest',
       '-geometry', `+${xOffset}+${yTop}`,
       textFile,
@@ -412,11 +485,13 @@ async function main() {
     : null
 
   console.log('🇩🇪 German Cover Generator')
+  console.log(`   ImageMagick: ${IS_MAGICK_V7 ? 'v7' : 'v6'} (${MAGICK_CMDS.convert})`)
   console.log(dryRun ? '   [DRY RUN — no uploads]\n' : '\n')
 
-  // Validate dependencies
-  if (!fs.existsSync(MAGICK)) throw new Error(`ImageMagick not found at ${MAGICK}`)
-  if (!fs.existsSync(FONT_EXTRABOLD)) throw new Error(`Font not found: ${FONT_EXTRABOLD}`)
+  // Validate dependencies (font check - ImageMagick already validated in findMagick())
+  if (!FONT_EXTRABOLD.includes('-') && !fs.existsSync(FONT_EXTRABOLD)) {
+    throw new Error(`Font not found: ${FONT_EXTRABOLD}`)
+  }
 
   // Init clients
   const supabase = createClient(
