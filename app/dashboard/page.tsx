@@ -101,6 +101,7 @@ function HeroSection({
               alt={currentBook.title}
               h={260}
               w={173}
+              fit="cover"
               radius="md"
               style={{
                 transform: 'rotateX(-22deg) rotateY(12deg)',
@@ -210,6 +211,7 @@ function HeroSection({
             alt={currentBook.title}
             height={280}
             width={187}
+            fit="cover"
             radius="md"
             style={{
               transform: 'rotateX(-25deg) rotateY(15deg)',
