@@ -1,7 +1,6 @@
 'use client';
 
 import { useLocale } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import { Group, UnstyledButton, Text } from '@mantine/core';
 
 const LOCALES = [
@@ -11,12 +10,11 @@ const LOCALES = [
 
 export function LocaleToggle() {
   const locale = useLocale();
-  const router = useRouter();
 
   const setLocale = (code: string) => {
     if (code === locale) return;
     document.cookie = `locale=${code}; max-age=31536000; path=/`;
-    router.refresh();
+    window.location.reload();
   };
 
   return (
