@@ -22,6 +22,7 @@ export interface Book {
   description?: string
   summary?: string
   cover_image_url?: string
+  cover_image_url_de?: string
   page_count?: number
   default_summary_pdf_url?: string
   translations?: BookTranslations
