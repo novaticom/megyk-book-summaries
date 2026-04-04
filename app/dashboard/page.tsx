@@ -15,7 +15,6 @@ import {
   Alert,
   Button,
   Box,
-  Image,
   Container,
 } from '@mantine/core';
 import {
@@ -90,24 +89,16 @@ function HeroSection({
       >
         {/* Mobile Layout - Centered */}
         <Stack align="center" gap="md">
-          <Box
-            style={{
-              perspective: '1200px',
-              position: 'relative',
-              width: 173,
-              height: 260,
-              overflow: 'hidden',
-              borderRadius: 8,
-              flexShrink: 0,
-            }}
-          >
-            <Image
+          <Box style={{ perspective: '1200px', position: 'relative', flexShrink: 0 }}>
+            <img
               src={currentBook.cover}
               alt={currentBook.title}
-              h={260}
-              w={173}
-              fit="cover"
               style={{
+                width: 173,
+                height: 260,
+                objectFit: 'cover',
+                borderRadius: 8,
+                display: 'block',
                 transform: 'rotateX(-22deg) rotateY(12deg)',
                 transformStyle: 'preserve-3d',
                 boxShadow:
@@ -202,25 +193,16 @@ function HeroSection({
         visibleFrom="md"
       >
         {/* Book Cover */}
-        <Box
-          style={{
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            perspective: '1500px',
-            width: 187,
-            height: 280,
-            overflow: 'hidden',
-            borderRadius: 8,
-          }}
-        >
-          <Image
+        <Box style={{ flexShrink: 0, perspective: '1500px' }}>
+          <img
             src={currentBook.cover}
             alt={currentBook.title}
-            h={280}
-            w={187}
-            fit="cover"
             style={{
+              width: 187,
+              height: 280,
+              objectFit: 'cover',
+              borderRadius: 8,
+              display: 'block',
               transform: 'rotateX(-25deg) rotateY(15deg)',
               transformStyle: 'preserve-3d',
               boxShadow:
