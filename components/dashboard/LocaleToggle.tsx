@@ -1,7 +1,7 @@
 'use client';
 
 import { useLocale } from 'next-intl';
-import { SegmentedControl, Text } from '@mantine/core';
+import { SegmentedControl, Text, Group } from '@mantine/core';
 
 const LOCALES = [
   { value: 'en', label: <Text style={{ fontSize: 18, lineHeight: 1 }}>🇺🇸</Text> },
@@ -17,12 +17,14 @@ export function LocaleToggle() {
   };
 
   return (
-    <SegmentedControl
-      value={locale}
-      onChange={setLocale}
-      data={LOCALES}
-      size="sm"
-      mt={4}
-    />
+    <Group gap="xs" align="center" mt={4} px={4}>
+      <SegmentedControl
+        value={locale}
+        onChange={setLocale}
+        data={LOCALES}
+        size="sm"
+      />
+      <Text size="sm" c="dimmed">Language</Text>
+    </Group>
   );
 }
