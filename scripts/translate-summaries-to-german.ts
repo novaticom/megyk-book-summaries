@@ -264,46 +264,57 @@ async function translateFormattedSummary(
 
     return result as FormattedSummaryWorkbook
   } else {
-    // Standard format: CORE_IDEA, STEPS_LI[], INSIGHTS_LI[]
-    const textsToTranslate = [
-      formatted.CORE_IDEA,
-      ...formatted.STEPS_LI,
-      ...formatted.INSIGHTS_LI,
-    ]
+    // Standard format - dynamically handle ALL fields
+    const textsToTranslate: string[] = []
+    const structure: { key: string; isArray: boolean; count?: number }[] = []
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a professional translator. Translate the following texts from English to German. Maintain clarity and professional tone.`
-        },
-        {
-          role: 'user',
-          content: `Translate these summary components to German. Return ONLY a JSON array of translated strings in the exact same order. No markdown, no explanation.
+    // Iterate over all keys and collect translatable content
+    for (const [key, value] of Object.entries(formatted)) {
+      // Skip non-translatable fields
+      if (key === 'TITLE' || key === 'AUTHOR') continue
+      if (value === null || value === undefined) continue
 
-Texts to translate:
-${JSON.stringify(textsToTranslate, null, 2)}`
+      if (Array.isArray(value)) {
+        // String array field (e.g., STEPS_LI, INSIGHTS_LI, KEY_THEMES_LI)
+        const stringArray = value.filter((v): v is string => typeof v === 'string')
+        if (stringArray.length > 0) {
+          textsToTranslate.push(...stringArray)
+          structure.push({ key, isArray: true, count: stringArray.length })
         }
-      ],
-      max_tokens: 3000,
-      temperature: 0.3,
-    })
-
-    const raw = response.choices[0].message.content ?? '[]'
-    const json = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
-    const translated: string[] = JSON.parse(json)
-
-    const stepsCount = formatted.STEPS_LI.length
-    const insightsCount = formatted.INSIGHTS_LI.length
-
-    return {
-      TITLE: germanBookTitle,
-      AUTHOR: formatted.AUTHOR,
-      CORE_IDEA: translated[0] ?? formatted.CORE_IDEA,
-      STEPS_LI: translated.slice(1, 1 + stepsCount),
-      INSIGHTS_LI: translated.slice(1 + stepsCount, 1 + stepsCount + insightsCount),
+      } else if (typeof value === 'string') {
+        // String field (e.g., CORE_IDEA, MAIN_THESIS, PROBLEM_SOLVED)
+        textsToTranslate.push(value)
+        structure.push({ key, isArray: false })
+      }
+      // Skip objects/other types (workbook format handles those)
     }
+
+    // Translate all texts in one batch
+    const translated = await translateWithRetry(
+      textsToTranslate,
+      'You are a professional translator. Translate the following texts from English to German. Maintain clarity and professional tone.',
+      'Translate these summary components to German. Return ONLY a JSON array of translated strings in the exact same order. No markdown, no explanation.',
+      openai
+    )
+
+    // Reconstruct the object with all fields
+    const result: Record<string, unknown> = {
+      TITLE: germanBookTitle,
+      AUTHOR: (formatted as any).AUTHOR,
+    }
+
+    let idx = 0
+    for (const s of structure) {
+      if (s.isArray) {
+        result[s.key] = translated.slice(idx, idx + (s.count ?? 0))
+        idx += s.count ?? 0
+      } else {
+        result[s.key] = translated[idx] ?? ''
+        idx++
+      }
+    }
+
+    return result as unknown as FormattedSummary
   }
 }
 

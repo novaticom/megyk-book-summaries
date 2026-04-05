@@ -84,6 +84,18 @@ export interface BookSummaryData {
 // HTML Helpers
 // ============================================================================
 
+/**
+ * Get locale-aware ad image URLs
+ * Returns German versions for 'de' locale, English for all others
+ */
+function getAdImageUrls(locale: string): { banner: string; fullPage: string } {
+  const suffix = locale === 'de' ? '-de' : ''
+  return {
+    banner: `https://app.megyk.com/two-minute-survey-cta${suffix}.png`,
+    fullPage: `https://app.megyk.com/medium-long-a${suffix}.png`,
+  }
+}
+
 function escapeHtml(str: string = ''): string {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -180,7 +192,8 @@ function renderShortMediumTemplate(
   templateHtml: string,
   data: FormattedSummary,
   style: SummaryStyle,
-  length: SummaryLength
+  length: SummaryLength,
+  locale: string
 ): string {
   let finalHtml = templateHtml
 
@@ -195,11 +208,16 @@ function renderShortMediumTemplate(
   const title = titleComponents[0]
   const subtitle = titleComponents.length > 1 ? titleComponents[1] : ''
 
+  // Get locale-aware ad URLs
+  const adUrls = getAdImageUrls(locale)
+
   // Common replacements
   finalHtml = finalHtml
     .replace(/{{TITLE}}/g, escapeHtml(title))
     .replace(/{{SUBTITLE}}/g, escapeHtml(subtitle))
     .replace(/{{AUTHOR}}/g, escapeHtml(data.AUTHOR))
+    .replace(/{{AD_BANNER_URL}}/g, adUrls.banner)
+    .replace(/{{AD_FULL_PAGE_URL}}/g, adUrls.fullPage)
 
   if (style === 'workbook') {
     // Workbook style rendering
@@ -251,9 +269,10 @@ function renderShortMediumTemplate(
 // Long Format Layout Generators
 // ============================================================================
 
-function generateNarrativeLayout(book: BookData, chapters: ChapterSummary[]): string {
+function generateNarrativeLayout(book: BookData, chapters: ChapterSummary[], locale: string): string {
   const title = escapeHtml(book.title)
   const author = escapeHtml(book.author)
+  const adUrls = getAdImageUrls(locale)
 
   const tocHtml = chapters.map(ch => `<li>${escapeHtml(cleanChapterTitle(ch))}</li>`).join('')
 
@@ -382,7 +401,7 @@ function generateNarrativeLayout(book: BookData, chapters: ChapterSummary[]): st
     ${chaptersHtml}
   </section>
   <div class="fullpage-ad">
-    <img src="https://app.megyk.com/medium-long-a.png" alt="Sponsored full-page advertisement" />
+    <img src="${adUrls.fullPage}" alt="Sponsored full-page advertisement" />
     <a href="https://thenew.gold/wds_in/?utm_source=megyk&utm_medium=${encodeURIComponent(book.title)}" class="ad-cta" target="_blank" rel="noopener noreferrer">
       <span>TAKE THE SURVEY</span>
     </a>
@@ -395,9 +414,10 @@ function generateNarrativeLayout(book: BookData, chapters: ChapterSummary[]): st
 `
 }
 
-function generateBulletPointsLayout(book: BookData, chapters: ChapterSummary[]): string {
+function generateBulletPointsLayout(book: BookData, chapters: ChapterSummary[], locale: string): string {
   const title = escapeHtml(book.title)
   const author = escapeHtml(book.author)
+  const adUrls = getAdImageUrls(locale)
 
   function toList(content: string | string[]): string {
     if (!content) return ''
@@ -507,7 +527,7 @@ function generateBulletPointsLayout(book: BookData, chapters: ChapterSummary[]):
     ${chaptersHtml}
   </section>
   <div class="fullpage-ad">
-    <img src="https://app.megyk.com/medium-long-a.png" alt="Sponsored full-page advertisement" />
+    <img src="${adUrls.fullPage}" alt="Sponsored full-page advertisement" />
     <a href="https://thenew.gold/wds_in/?utm_source=megyk&utm_medium=${encodeURIComponent(book.title)}" class="ad-cta" target="_blank" rel="noopener noreferrer">
       <span>TAKE THE SURVEY</span>
     </a>
@@ -520,9 +540,10 @@ function generateBulletPointsLayout(book: BookData, chapters: ChapterSummary[]):
 `
 }
 
-function generateWorkbookLayout(book: BookData, chapters: ChapterSummary[]): string {
+function generateWorkbookLayout(book: BookData, chapters: ChapterSummary[], locale: string): string {
   const title = escapeHtml(book.title)
   const author = escapeHtml(book.author)
+  const adUrls = getAdImageUrls(locale)
 
   function cleanTitle(chapterTitle: string = ''): string {
     return chapterTitle.replace(/^(Chapter\s*\d+[:.\\-]?\s*|[0-9IVXLCDM]+\s+)/i, '').trim()
@@ -684,7 +705,7 @@ function generateWorkbookLayout(book: BookData, chapters: ChapterSummary[]): str
   ${chaptersHtml}
   ${indexHtml}
   <div class="fullpage-ad">
-    <img src="https://app.megyk.com/medium-long-a.png" alt="Sponsored full-page advertisement" />
+    <img src="${adUrls.fullPage}" alt="Sponsored full-page advertisement" />
     <a href="https://thenew.gold/wds_in/?utm_source=megyk&utm_medium=${encodeURIComponent(book.title)}" class="ad-cta" target="_blank" rel="noopener noreferrer">
       <span>TAKE THE SURVEY</span>
     </a>
@@ -767,7 +788,7 @@ export class SummaryGenerationService {
    * Generate HTML for a summary based on style and length
    */
   async generateHtml(data: BookSummaryData): Promise<string> {
-    const { book, summaryV2, style, length } = data
+    const { book, summaryV2, style, length, locale } = data
 
     if (length === 'long') {
       // Long format: Generate full HTML layout
@@ -775,13 +796,13 @@ export class SummaryGenerationService {
 
       switch (style) {
         case 'narrative':
-          return generateNarrativeLayout(book, chapters)
+          return generateNarrativeLayout(book, chapters, locale)
         case 'bullet_points':
-          return generateBulletPointsLayout(book, chapters)
+          return generateBulletPointsLayout(book, chapters, locale)
         case 'workbook':
-          return generateWorkbookLayout(book, chapters)
+          return generateWorkbookLayout(book, chapters, locale)
         default:
-          return generateNarrativeLayout(book, chapters)
+          return generateNarrativeLayout(book, chapters, locale)
       }
     } else {
       // Short/Medium format: Use templates with token replacement
@@ -792,7 +813,7 @@ export class SummaryGenerationService {
         throw new Error(`No formatted_summary found for book ${book.id} with style=${style}, length=${length}`)
       }
 
-      return renderShortMediumTemplate(templateHtml, summaryV2.formatted_summary, style, length)
+      return renderShortMediumTemplate(templateHtml, summaryV2.formatted_summary, style, length, locale)
     }
   }
 
@@ -837,19 +858,26 @@ export class SummaryGenerationService {
       throw new Error(`Book not found: ${bookId}`)
     }
 
-    // Load pre-generated summary
-    const summaryV2 = await this.loadSummaryV2(bookId, style, length, locale)
+    // Load pre-generated summary, with fallback to English
+    let summaryV2 = await this.loadSummaryV2(bookId, style, length, locale)
+
+    // If not found and locale is not English, try falling back to English
+    if (!summaryV2 && locale !== 'en') {
+      console.log(`Summary not found for locale=${locale}, falling back to English`)
+      summaryV2 = await this.loadSummaryV2(bookId, style, length, 'en')
+    }
+
     if (!summaryV2) {
       throw new Error(`Summary not found for book ${bookId} with style=${style}, length=${length}, locale=${locale}`)
     }
 
-    // Generate HTML
+    // Generate HTML - use original locale for ad images even if content fell back to English
     const html = await this.generateHtml({
       book,
       summaryV2,
       style,
       length,
-      locale
+      locale  // User's requested locale for ad images
     })
 
     // Convert to PDF
