@@ -414,5 +414,21 @@
     "Communication": "Kommunikation",
     "Finance": "Finanzen",
     "Entrepreneurship": "Unternehmertum"
+  },
+  "pdfSummary": {
+    "bookSummary": "{author}s Megyk-Buchessenz",
+    "coreIdea": "Kernidee",
+    "problemSolved": "Welches Problem löst das Buch?",
+    "whyItMatters": "Warum ist dieses Problem wichtig?",
+    "mainThesis": "Was ist die Hauptthese des Autors?",
+    "insights": "Größte Erkenntnisse/Prinzipien?",
+    "steps": "Praktische Schritte",
+    "keyThemes": "Kernthemen",
+    "whoThisIsFor": "Für wen dieses Buch ist",
+    "integration": "Integration",
+    "questionsForReflection": "Fragen zur Reflexion:",
+    "disclaimer": "Hinweis: KI-generierte Zusammenfassung. Nicht vom Originalautor oder Verlag erstellt oder unterstützt.",
+    "paidAdvertisement": "BEZAHLTE WERBUNG:",
+    "website": "www.megyk.com"
   }
 }
