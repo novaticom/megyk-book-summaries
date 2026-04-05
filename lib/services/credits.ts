@@ -15,17 +15,45 @@ import {
 } from '@/lib/types/credits'
 import { SummaryStyle, SummaryLength } from '@/lib/types/preferences'
 
+/**
+ * Check if credit system is bypassed (for local development/testing)
+ * Set BYPASS_CREDITS=true in .env.local to skip credit checks and deductions
+ */
+export function isCreditsBypassEnabled(): boolean {
+  return process.env.BYPASS_CREDITS === 'true'
+}
+
 export class CreditService {
   private supabase: SupabaseClient
+  private bypassEnabled: boolean
 
   constructor(supabase: SupabaseClient) {
     this.supabase = supabase
+    this.bypassEnabled = isCreditsBypassEnabled()
+
+    if (this.bypassEnabled) {
+      console.warn('[CreditService] ⚠️ BYPASS_CREDITS is enabled - credits will not be checked or deducted')
+    }
   }
 
   /**
    * Get the current credit balance for a user
+   * Returns unlimited credits if BYPASS_CREDITS is enabled
    */
   async getBalance(userId: string): Promise<CreditBalance | null> {
+    // Return fake unlimited balance in dev mode
+    if (this.bypassEnabled) {
+      return {
+        id: 'bypass-balance',
+        user_id: userId,
+        current_balance: 999999,
+        lifetime_earned: 999999,
+        lifetime_spent: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as CreditBalance
+    }
+
     const { data, error } = await this.supabase
       .from('credit_balances')
       .select('*')
@@ -42,11 +70,22 @@ export class CreditService {
 
   /**
    * Check if user has sufficient credits for an action
+   * Returns unlimited credits if BYPASS_CREDITS is enabled
    */
   async checkBalance(
     userId: string,
     requiredCredits: number
   ): Promise<CreditCheckResult> {
+    // Bypass credit checks in dev mode
+    if (this.bypassEnabled) {
+      return {
+        has_sufficient_credits: true,
+        current_balance: 999999,
+        required_credits: requiredCredits,
+        remaining_after: 999999 - requiredCredits,
+      }
+    }
+
     const balance = await this.getBalance(userId)
 
     if (!balance) {
@@ -91,6 +130,7 @@ export class CreditService {
   /**
    * Deduct credits from user balance
    * Returns the transaction record or null if insufficient funds
+   * Skips deduction if BYPASS_CREDITS is enabled (returns mock transaction)
    */
   async deductCredits(
     userId: string,
@@ -101,6 +141,24 @@ export class CreditService {
     description?: string,
     metadata?: Record<string, unknown>
   ): Promise<CreditTransaction | null> {
+    // Skip deduction in dev mode
+    if (this.bypassEnabled) {
+      console.log(`[CreditService] Bypassing deduction of ${amount} credits for ${transactionType}`)
+      return {
+        id: 'bypass-' + Date.now(),
+        user_id: userId,
+        amount: -amount,
+        transaction_type: transactionType,
+        reference_id: referenceId || null,
+        reference_type: referenceType || null,
+        description: description || `${transactionType} deduction (bypassed)`,
+        balance_before: 999999,
+        balance_after: 999999 - amount,
+        metadata: metadata || {},
+        created_at: new Date().toISOString(),
+      } as CreditTransaction
+    }
+
     // First check current balance
     const balance = await this.getBalance(userId)
 
