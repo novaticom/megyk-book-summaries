@@ -1,0 +1,649 @@
+{
+  "name": "Get Summary PDF v3 CORE",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c282fc30-4cc0-45da-90ae-23893d32d524",
+              "name": "book_id",
+              "value": "={{ $json.body.book_id }}",
+              "type": "string"
+            },
+            {
+              "id": "0e5aadd7-7c6c-4e08-980a-e58827a91d04",
+              "name": "style",
+              "value": "={{ $json.body.preferences.style }}",
+              "type": "string"
+            },
+            {
+              "id": "1aa41326-89d7-4960-9029-7f5d062395f7",
+              "name": "length",
+              "value": "={{ $json.body.preferences.length }}",
+              "type": "string"
+            },
+            {
+              "id": "a4e340eb-229c-41a5-8269-a37bdfb2993d",
+              "name": "locale",
+              "value": "={{ $json.body.locale }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -672,
+        -80
+      ],
+      "id": "087c8d63-75f5-4915-b688-02903ba77e51",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/files/templates/one-page-template.html",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -272
+      ],
+      "id": "e8710183-df87-43b3-8d7c-ae03f9ec648d",
+      "name": "Read One-page Template"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// --------------------------------------------------\n// 1. Get HTML template (already decoded upstream)\n// --------------------------------------------------\nconst templateHtml = $json.data;\n\n// --------------------------------------------------\n// 2. Extract model JSON string (Message a Model output)\n// --------------------------------------------------\nconst modelText = $('Call \\'Load Book Summary\\'').item.json.formatted_summary;\n// --------------------------------------------------\n// 3. Parse model JSON\n// --------------------------------------------------\nlet data;\ntry {\n  data = modelText;\n} catch (e) {\n  throw new Error(\"Failed to parse model JSON output\");\n}\n\nfunction stripHtml(input = \"\") {\n  return String(input)\n    .replace(/<[^>]*>/g, \"\")\n    .trim();\n}\n\n\n// --------------------------------------------------\n// 4. HTML escape helper\n// --------------------------------------------------\nfunction escapeHtml(str = \"\") {\n  return String(str)\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\");\n}\n\nfunction clampList(arr, max) {\n  return Array.isArray(arr) ? arr.slice(0, max) : [];\n}\n\n// --------------------------------------------------\n// 4. Render <li> list\n// --------------------------------------------------\nfunction renderList(arr = []) {\n  if (!Array.isArray(arr) || !arr.length) return \"\";\n  return `<ul>${arr.map(i => `<li>${escapeHtml(i)}</li>`).join(\"\")}</ul>`;\n}\n\n// --------------------------------------------------\n// 5. Universal renderer (string OR array)\n// --------------------------------------------------\nfunction renderField(value) {\n  if (Array.isArray(value)) {\n    return renderList(value);\n  }\n  return escapeHtml(value || \"\");\n}\n\n// --------------------------------------------------\n// 5.1 Render workbook section (SUMMARY + QUESTION)\n// --------------------------------------------------\nfunction renderWorkbookSection(section) {\n  if (!section || typeof section !== \"object\") return \"\";\n\n  const summary = section.SUMMARY\n    ? `<span class=\"workbook-summary\">${escapeHtml(section.SUMMARY)}</span>`\n    : \"\";\n\n  const question = section.QUESTION\n    ? `<span class=\"workbook-question\">${escapeHtml(section.QUESTION)}</span>`\n    : \"\";\n\n  if (summary && question) {\n    return `${summary}<br/><br/>${question}`;\n  }\n\n  return summary || question;\n}\n\n// --------------------------------------------------\n// 5.2 Render answer lines for workbook questions\n// --------------------------------------------------\nfunction renderAnswerLines(lineCount = 4) {\n  let lines = \"\";\n  for (let i = 0; i < lineCount; i++) {\n    lines += `<div class=\"answer-line\"></div>`;\n  }\n  return lines;\n}\n\n// --------------------------------------------------\n// 5.3 Render workbook question + answer space (page 2)\n// --------------------------------------------------\nfunction renderWorkbookAnswerBlock(section, lineCount = 4) {\n  if (!section || typeof section !== \"object\") return \"\";\n\n  const question = section.QUESTION\n    ? `<div class=\"workbook-question\">${escapeHtml(section.QUESTION)}</div>`\n    : \"\";\n\n  const answers = renderAnswerLines(lineCount);\n\n  return `\n    <div class=\"workbook-answer-block\">\n      ${question}\n      ${answers}\n    </div>\n  `;\n}\n\n// --------------------------------------------------\n// 4.5 Content budgets (layout safety)\n// --------------------------------------------------\nconst MAX_INSIGHTS = 3;\nconst MAX_STEPS = 3;\n\n\n// --------------------------------------------------\n// 5. Build bullet lists (clamped for layout safety)\n// --------------------------------------------------\nconst insightsHtml = clampList(data.INSIGHTS_LI, MAX_INSIGHTS)\n  .map(i => `<li>${escapeHtml(i)}</li>`)\n  .join(\"\");\n\nconst stepsHtml = clampList(data.STEPS_LI, MAX_STEPS)\n  .map(i => `<li>${escapeHtml(i)}</li>`)\n  .join(\"\");\n\n\nlet finalHtml = templateHtml;\n\nconst styleClass = $('Config').item.json.style || 'default';\n\nfinalHtml = finalHtml.replace(\n  /<body([^>]*)>/i,\n  `<body$1 class=\"${styleClass}\">`\n);\n\nlet titleComponents = data.TITLE.split(':');\nlet title = titleComponents[0];\nlet subtitle = titleComponents.length >1? titleComponents[1] : '';\n\nfinalHtml = finalHtml\n  .replace(/{{TITLE}}/g, escapeHtml(title))\n  .replace(/{{SUBTITLE}}/g, escapeHtml(subtitle))\n  .replace(/{{AUTHOR}}/g, escapeHtml(data.AUTHOR));\n\nif($('Config').item.json.style === 'workbook'){\n    // Workbook sections (SUMMARY + QUESTION objects)\n    finalHtml = finalHtml\n    .replace(/{{CORE_IDEA}}/g, renderField(data.CORE_IDEA))\n\n    .replace(/{{PROBLEM_SOLVED}}/g, renderWorkbookSection(data.PROBLEM_SOLVED))\n    .replace(/{{WHY_IT_MATTERS}}/g, renderWorkbookSection(data.WHY_IT_MATTERS))\n    .replace(/{{MAIN_THESIS}}/g, renderWorkbookSection(data.MAIN_THESIS))\n\n    // Right column lists repurposed as workbook sections\n    .replace(/{{INSIGHTS_LI}}/g, renderWorkbookSection(data.INSIGHTS))\n    .replace(/{{STEPS_LI}}/g, renderWorkbookSection(data.STEPS))\n\n    .replace(\n      /{{TLDR_QUOTE_OR_SUMMARY_LINE}}/g,\n      renderField(data.TLDR_QUOTE_OR_SUMMARY_LINE)\n    )\n    // page 1 rendering (already working)\n    .replace(/{{WORKBOOK_ANSWER_PAGE}}/g, `\n      <div class=\"page workbook-answers\">\n        <h2>Reflection & Notes</h2>\n\n        ${renderWorkbookAnswerBlock(data.PROBLEM_SOLVED, 4)}\n        ${renderWorkbookAnswerBlock(data.WHY_IT_MATTERS, 4)}\n        ${renderWorkbookAnswerBlock(data.MAIN_THESIS, 4)}\n        ${renderWorkbookAnswerBlock(data.INSIGHTS, 5)}\n        ${renderWorkbookAnswerBlock(data.STEPS, 5)}\n      </div>\n    `)\n    .replace(/{{AD_CLICK_URL}}/g, 'https://thenew.gold/wds_in/?utm_source=megyk&utm_medium=' + data.TITLE);\n \n}else{\n// Standard fields\nfinalHtml = finalHtml\n  .replace(/{{TITLE}}/g, escapeHtml(data.TITLE))\n  .replace(/{{AUTHOR}}/g, escapeHtml(data.AUTHOR))\n  .replace(/{{CORE_IDEA}}/g, renderField(data.CORE_IDEA || data.CORE_IDEA_LI || data.CORE_IDEA_Q))\n  .replace(/{{PROBLEM_SOLVED}}/g, renderField(data.PROBLEM_SOLVED || data.PROBLEM_SOLVED_LI || data.PROBLEM_SOLVED_Q))\n  .replace(/{{WHY_IT_MATTERS}}/g, renderField(data.WHY_IT_MATTERS || data.WHY_IT_MATTERS_LI || data.WHY_IT_MATTERS_Q))\n  .replace(/{{MAIN_THESIS}}/g, renderField(data.MAIN_THESIS || data.MAIN_THESIS_LI || data.MAIN_THESIS_Q))\n  .replace(/{{INSIGHTS_LI}}/g, insightsHtml || data.INSIGHTS_Q)\n  .replace(/{{STEPS_LI}}/g, stepsHtml || data.STEPS_Q )\n  .replace(\n    /{{TLDR_QUOTE_OR_SUMMARY_LINE}}/g,\n    renderField(data.TLDR_QUOTE_OR_SUMMARY_LINE || stripHtml(data.TLDR_LI))  \n  )\n  .replace(/{{AD_CLICK_URL}}/g, 'https://thenew.gold/wds_in/?utm_source=megyk&utm_medium=' + data.TITLE)\n  .replace(/{{WORKBOOK_ANSWER_PAGE}}/g, '');\n}\n\n// --------------------------------------------------\n// 7. Return final HTML\n// --------------------------------------------------\nreturn {\n  html: finalHtml,\n  meta: {\n    title: data.TITLE,\n    author: data.AUTHOR\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        -272
+      ],
+      "id": "a7e73aa4-f5a2-4820-bd86-29c5c12757d1",
+      "name": "Replace Tokens with Generated"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Config').item.json.length }}",
+                    "rightValue": "short",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6895a04f-396e-47bd-abac-d5c73f760691"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "short"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "537f3196-5ed1-493b-919b-6b0dc61bd5f4",
+                    "leftValue": "={{ $('Config').item.json.length }}",
+                    "rightValue": "medium",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "medium"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "0708cdac-c7d3-45ca-a75f-d4c4639ed8ab",
+                    "leftValue": "={{ $('Config').item.json.length }}",
+                    "rightValue": "long",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "long"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -224,
+        -96
+      ],
+      "id": "7b57f982-db46-42bb-8841-770c56b6b893",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -896,
+        -80
+      ],
+      "id": "14ce1ec2-c0fd-4f59-b234-959232ee3cf9",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "TFbZMklKeSxB7159",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/TFbZMklKeSxB7159",
+          "cachedResultName": "Load Book Summary"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "book_id": "={{ $json.book_id }}",
+            "style": "={{ $json.style }}",
+            "length": "={{ $json.length }}",
+            "locale": "={{ $json.locale }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "book_id",
+              "displayName": "book_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "style",
+              "displayName": "style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "length",
+              "displayName": "length",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "locale",
+              "displayName": "locale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -448,
+        -80
+      ],
+      "id": "6d442a75-7e47-4239-941d-55f04f2efaf9",
+      "name": "Call 'Load Book Summary'"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        -272
+      ],
+      "id": "1cc1b95b-bd4a-4274-bf9f-c6041eda97fc",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        -80
+      ],
+      "id": "dd72e1f9-906f-4846-a8b9-48249e981e08",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// --------------------------------------------------\n// 1. Get HTML template (already decoded upstream)\n// --------------------------------------------------\nconst templateHtml = $json.data;\n\n// --------------------------------------------------\n// 2. Extract model JSON string (Message a Model output)\n// --------------------------------------------------\nconst modelText = $('Call \\'Load Book Summary\\'').item.json.formatted_summary;\n\n// --------------------------------------------------\n// 3. Parse model JSON\n// --------------------------------------------------\nlet data;\ntry {\n  data = modelText;\n} catch (e) {\n  throw new Error(\"Failed to parse model JSON output\");\n}\n\nfunction stripHtml(input = \"\") {\n  return String(input)\n    .replace(/<[^>]*>/g, \"\")\n    .trim();\n}\n\n// --------------------------------------------------\n// 4. HTML escape helper\n// --------------------------------------------------\nfunction escapeHtml(str = \"\") {\n  return String(str)\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\");\n}\n\n// --------------------------------------------------\n// 4. Render <li> list\n// --------------------------------------------------\nfunction renderList(arr = []) {\n  if (!Array.isArray(arr) || !arr.length) return \"\";\n  return `<ul>${arr.map(i => `<li>${escapeHtml(i)}</li>`).join(\"\")}</ul>`;\n}\n\n// --------------------------------------------------\n// 5. Universal renderer (string OR array)\n// --------------------------------------------------\nfunction renderField(value) {\n  if (Array.isArray(value)) {\n    return renderList(value);\n  }\n  return escapeHtml(value || \"\");\n}\n\n\n\n// --------------------------------------------------\n// 5.1 Render workbook section (SUMMARY + QUESTION)\n// --------------------------------------------------\nfunction renderWorkbookSection(section) {\n  if (!section || typeof section !== \"object\") return \"\";\n\n  let html = \"\";\n\n  if (section.SUMMARY) {\n    html += `<span class=\"workbook-summary\">${escapeHtml(section.SUMMARY)}</span>`;\n  }\n\n  const questions = [];\n\n  if (section.QUESTION) {\n    questions.push(section.QUESTION);\n  }\n\n  if (Array.isArray(section.QUESTIONS)) {\n    questions.push(...section.QUESTIONS);\n  }\n\n  if (questions.length) {\n    html += `\n      <div class=\"workbook-questions\">\n        ${questions\n          .map(q => `<div class=\"workbook-question\">${escapeHtml(q)}</div>`)\n          .join(\"\")}\n      </div>\n    `;\n  }\n\n  return html;\n}\n\n// --------------------------------------------------\n// 5.2 Render answer lines for workbook questions\n// --------------------------------------------------\nfunction renderAnswerLines(lineCount = 4) {\n  let lines = \"\";\n  for (let i = 0; i < lineCount; i++) {\n    lines += `<div class=\"answer-line\"></div>`;\n  }\n  return lines;\n}\n\n// --------------------------------------------------\n// 5.3 Render workbook question + answer space (page 2)\n// --------------------------------------------------\nfunction renderWorkbookAnswerBlock(section, lineCount = 6) {\n  if (!section || typeof section !== \"object\") return \"\";\n\n  const questions = [];\n\n  if (section.QUESTION) {\n    questions.push(section.QUESTION);\n  }\n\n  if (Array.isArray(section.QUESTIONS)) {\n    questions.push(...section.QUESTIONS);\n  }\n\n  if (!questions.length) return \"\";\n\n  return questions.map(q => `\n    <div class=\"workbook-answer-block\">\n      <div class=\"workbook-question\">${escapeHtml(q)}</div>\n      ${renderAnswerLines(lineCount)}\n    </div>\n  `).join(\"\");\n}\n\n// --------------------------------------------------\n// 6. Build bullet lists (UNCLAMPED)\n// --------------------------------------------------\nconst insightsHtml = (data.INSIGHTS_LI || [])\n  .map(i => `<li>${escapeHtml(i)}</li>`)\n  .join(\"\");\n\nconst stepsHtml = (data.STEPS_LI || [])\n  .map(i => `<li>${escapeHtml(i)}</li>`)\n  .join(\"\");\n\n// --------------------------------------------------\n// 7. Template wiring\n// --------------------------------------------------\nlet finalHtml = templateHtml;\n\nconst styleClass = $('Config').item.json.style || 'default';\n\nfinalHtml = finalHtml.replace(\n  /<body([^>]*)>/i,\n  `<body$1 class=\"${styleClass}\">`\n);\n\nlet titleComponents = data.TITLE.split(':');\nlet title = titleComponents[0];\nlet subtitle = titleComponents.length >1? titleComponents[1] : '';\n\nfinalHtml = finalHtml\n  .replace(/{{TITLE}}/g, escapeHtml(title))\n  .replace(/{{SUBTITLE}}/g, escapeHtml(subtitle))\n  .replace(/{{AUTHOR}}/g, escapeHtml(data.AUTHOR));\n\nif ($('Config').item.json.style === 'workbook') {\n  finalHtml = finalHtml\n    .replace(/{{CORE_IDEA}}/g, renderField(data.CORE_IDEA))\n    .replace(/{{PROBLEM_SOLVED}}/g, renderWorkbookSection(data.PROBLEM_SOLVED))\n    .replace(/{{WHY_IT_MATTERS}}/g, renderWorkbookSection(data.WHY_IT_MATTERS))\n    .replace(/{{MAIN_THESIS}}/g, renderWorkbookSection(data.MAIN_THESIS))\n    .replace(/{{INSIGHTS_LI}}/g, renderWorkbookSection(data.INSIGHTS))\n    .replace(/{{STEPS_LI}}/g, renderWorkbookSection(data.STEPS))\n    .replace(\n      /{{TLDR_QUOTE_OR_SUMMARY_LINE}}/g,\n      renderField(data.TLDR_QUOTE_OR_SUMMARY_LINE)\n    )\n    .replace(/{{WORKBOOK_ANSWER_PAGE}}/g, `\n      <div class=\"page workbook-answers\">\n        <h2>Reflection & Notes</h2>\n\n        ${renderWorkbookAnswerBlock(data.PROBLEM_SOLVED, 4)}\n        ${renderWorkbookAnswerBlock(data.WHY_IT_MATTERS, 4)}\n        ${renderWorkbookAnswerBlock(data.MAIN_THESIS, 4)}\n        ${renderWorkbookAnswerBlock(data.INSIGHTS, 5)}\n        ${renderWorkbookAnswerBlock(data.STEPS, 5)}\n      </div><br /><br /><br />\n    `)\n    .replace(/{{AD_CLICK_URL}}/g, 'https://thenew.gold/wds_in/?utm_source=megyk&utm_medium=' + data.TITLE);\n} else {\n  finalHtml = finalHtml\n    .replace(/{{CORE_IDEA}}/g, renderField(data.CORE_IDEA || data.CORE_IDEA_LI || data.CORE_IDEA_Q))\n    .replace(/{{PROBLEM_SOLVED}}/g, renderField(data.PROBLEM_SOLVED || data.PROBLEM_SOLVED_LI || data.PROBLEM_SOLVED_Q))\n    .replace(/{{WHY_IT_MATTERS}}/g, renderField(data.WHY_IT_MATTERS || data.WHY_IT_MATTERS_LI || data.WHY_IT_MATTERS_Q))\n    .replace(/{{MAIN_THESIS}}/g, renderField(data.MAIN_THESIS || data.MAIN_THESIS_LI || data.MAIN_THESIS_Q))\n    .replace(/{{INSIGHTS_LI}}/g, insightsHtml || data.INSIGHTS_Q)\n    .replace(/{{STEPS_LI}}/g, stepsHtml || data.STEPS_Q)\n    .replace(\n      /{{TLDR_QUOTE_OR_SUMMARY_LINE}}/g,\n      renderField(data.TLDR_QUOTE_OR_SUMMARY_LINE || stripHtml(data.TLDR_LI))\n    )\n    .replace(/{{AD_CLICK_URL}}/g, 'https://thenew.gold/wds_in/?utm_source=megyk&utm_medium=' + data.TITLE)\n    .replace(/{{WORKBOOK_ANSWER_PAGE}}/g, '');\n}\n\n// --------------------------------------------------\n// 8. Return final HTML\n// --------------------------------------------------\nreturn {\n  html: finalHtml,\n  meta: {\n    title: data.TITLE,\n    author: data.AUTHOR\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        -80
+      ],
+      "id": "df10ae57-71b0-4a6f-bc5f-7709d3297c05",
+      "name": "Replace Tokens with Generated1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// UPDATED BULLET POINTS LAYOUT GENERATOR — Compatible with new book input format\n\nconst book = items[0].json;\n\n// -----------------------------\n// New input fields\n// -----------------------------\nconst prefs = {\n  style: book.style || \"bullet_points\",\n  length: book.length || \"medium\",\n};\n\nconst chapters = Array.isArray(book.summary) ? book.summary : [];\nconst summary = book.complete_book_summary || \"\";\nconst title = book.title || \"\";\nconst author = book.author || \"\";\n\n\n\n// -----------------------------\n// Helpers\n// -----------------------------\nfunction escapeHTML(str = \"\") {\n  return String(str)\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\");\n}\n\nfunction toList(content) {\n  if (!content) return \"\";\n\n  // Already an array of bullets?\n  if (Array.isArray(content)) {\n    return `<ul>${content.map(b => `<li>${b.trim()}</li>`).join(\"\\n\")}</ul>`;\n  }\n\n  // Otherwise → split full summary text into bullet sentences\n  const sentences = content\n    .split(/(?<=[.?!])\\s+/)\n    .map(s => s.trim())\n    .filter(Boolean);\n\n  return `<ul>${sentences.map(s => `<li>${s}</li>`).join(\"\\n\")}</ul>`;\n}\n\nfunction cleanTitle(ch, withNumber = false) {\n  let title = ch.title || \"\";\n  title = title.replace(/^(Chapter\\s*\\d+[:.\\-]?\\s*|[0-9IVXLCDM]+\\s+)/i, \"\").trim();\n  return withNumber ? `Chapter ${ch.chapter_index + 1}: ${title}` : title;\n}\n\n// Accent color (kept but everything is black for now)\nfunction accentColor(length) {\n  return \"#000000\";\n}\nconst accent = accentColor(prefs.length);\n\n// -----------------------------\n// HTML Layout\n// -----------------------------\nlet html = `\n<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<title>${title}</title>\n<style>\n  body {\n    font-family: \"Helvetica Neue\", Arial, sans-serif;\n    margin: 1in;\n    line-height: 1.6;\n    color: #000000;\n    background: #FFFFFF;\n  }\n  h1, h2, h3 { color: #000000; }\n\n  #h1, h2 {\n    text-align: center;\n    color: #000;\n    font-weight: 700;\n    line-height: 1.25;\n    page-break-after: avoid;\n    page-break-inside: avoid;\n  }\n\n#cover h1,\n#cover h2,\n#cover h3 {\n  text-align: center;\n}\n\n\n/* Cover Title */\nh1 {\n  font-size: 2.4em;\n  margin-top: 1em;\n  margin-bottom: 0.3em;\n}\n\n/* Section headers */\nh2 {\n  margin-top: 1em;\n  margin-bottom: 0.75em;\n}\n\n/* Chapter titles */\nh3 {\n\n  margin-top: .5em;\n  margin-bottom: 0.55em;\n}\n\n  ul {\n    list-style-type: disc;\n    margin-left: 1.5em;\n    line-height: 1.5;\n  }\n  li { margin-bottom: 0.3em; }\n\n  .prefs {\n    border-left: 4px solid #000000;\n    padding: 1em;\n    margin-bottom: 2em;\n  }\n\n  #overall, #toc, article {\n    page-break-inside: avoid;\n  }\n\n  #overall {\n    border-left: 4px solid #000000;\n    padding: 1.2em;\n    margin-bottom: 2em;\n  }\n\n  #toc {\n    border: 1px solid #000000;\n    padding: 1em;\n    margin-bottom: 2em;\n  }\n\n  #toc h2 {\n    border: none;\n    margin-bottom: 0.5em;\n  }\n\n  #toc ol {\n    margin-left: 1.5em;\n    line-height: 1.5;\n  }\n\n  #chapters {\n    page-break-before: always;\n  }\n\n  article {\n    margin-top: 2em;\n    padding: 1em;\n    border-top: 2px solid #000000;\n  }\n\n  footer {\n    margin-top: 50px;\n    text-align: center;\n    font-size: 0.8em;\n    border-top: 1px solid #000000;\n    padding-top: 10px;\n  }\n\n  @page {\n    margin: 0.6in 0.7in;\n      @bottom-center {\n      content: \"AI-generated summary. Not affiliated with or endorsed by the original author or publisher.\";\n      font-size: 8.5pt;\n      font-style: italic;\n      color: #777;\n    }\n\n  }\n\n\n  @media print {\n    body { margin: 0; }\n    h1, h2, h3, li, p { color: #000000 !important; background: #FFFFFF !important; }\n    #overall, #toc, article { page-break-inside: avoid; }\n    #chapters { page-break-before: always; }\n  }\n\n/* -------------------------\n   Full-page advertisement (last page)\n-------------------------- */\n\n.fullpage-ad {\n  page-break-before: always;\n  position: relative;\n  width: 100%;\n  height: calc(11in - 1.3in); /* Letter height minus @page top+bottom margins */\n}\n\n.fullpage-ad img {\n  width: 100%;\n  height: 100%;\n  object-fit: contain; /* IMPORTANT: don't crop ad */\n  display: block;\n}\n\n/* CTA overlay */\n.ad-cta {\n  position: absolute;\n\n  /* 👇 These values are adjustable once we eyeball placement */\n  bottom: 1.2in;\n  left: 50%;\n  transform: translateX(-50%);\n\n  font-family: \"Open Sans Condensed\", \"Arial Narrow\", Arial, sans-serif;\n  font-weight: 700;\n  font-size: 18pt;\n  letter-spacing: 0.04em;\n\n  color: #ffffff;\n  text-decoration: none;\n  text-align: center;\n\n  /* Subtle legibility boost */\n  text-shadow: 0 1px 3px rgba(0,0,0,0.6);\n}\n\n/* Make entire CTA area clickable but not intrusive */\n.ad-cta span {\n  padding: 10px 24px;\n  display: inline-block;\n}\n\n.fullpage-ad {\n  margin: 0px; /* cancel body padding */\n}\n@media screen{\n  .ad-cta{\n    /* 👇 These values are adjustable once we eyeball placement */\n    bottom: 1.1in;\n  }\n}\n@media print{\n  .ad-cta{\n      /* 👇 These values are adjustable once we eyeball placement */\n    bottom: 1.35in;\n  }\n}\n</style>\n</head>\n<body>\n  <!-- Cover Page -->\n  <section id=\"cover\">\n    <h1>${escapeHTML(title)}</h1>\n    <h3>${escapeHTML(author)}</h3>\n    <h3>Megyk Books Summary — Bullet Point Style</h3><br />\n \n  </section>\n<!--\n<div class=\"prefs\">\n  <p><strong>Style:</strong> ${prefs.style}</p>\n  <p><strong>Target Length:</strong> ${prefs.length}</p>\n   <em>AI-generated summary. Not affiliated with or endorsed by the original author or publisher.</em>\n</div>\n-->\n<section id=\"toc\">\n  <h2>Table of Contents</h2>\n  <ol>\n    ${chapters.map(ch => `<li>${cleanTitle(ch, false)}</li>`).join(\"\\n\")}\n  </ol>\n</section>\n\n<section id=\"chapters\">\n  <h2>Chapters</h2>\n`;\n\nfor (const ch of chapters) {\n  // New format → bullets come from plain text in ch.summary\n  const bullets = ch.summary;\n  html += `\n  <article>\n    <h3>${cleanTitle(ch, false)}</h3>\n    ${toList(bullets)}\n  </article>\n  `;\n}\n\nhtml += `\n</section>\n<div class=\"fullpage-ad\">\n  <img\n    src=\"https://app.megyk.com/medium-long-a.png\"\n    alt=\"Sponsored full-page advertisement\"\n  />\n\n  <a\n    href=\"https://thenew.gold/wds_in/?utm_source=megyk&utm_medium=${encodeURIComponent(title)}\"\n    class=\"ad-cta\"\n    target=\"_blank\"\n    rel=\"noopener noreferrer\"\n  >\n    <span>TAKE THE SURVEY</span>\n  </a>\n</div>\n\n<footer>\n  <p>Generated by <strong>Megyk Books</strong> — ${new Date().toLocaleDateString()}</p>\n    \n\n</footer>\n\n</body>\n</html>\n`;\n\nreturn [{ json: { html } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        304
+      ],
+      "id": "7123ab31-cf21-413f-94d4-d38280a5b68a",
+      "name": "Generate Bullet Points Layout"
+    },
+    {
+      "parameters": {
+        "jsCode": "// WORKBOOK LAYOUT GENERATOR — expects chapters with questions[] + answers[]\n\nconst book = items[0].json;\n\n// -----------------------------\n// Expected input structure\n// -----------------------------\n// {\n//   title: \"...\",\n//   author: \"...\",\n//   complete_book_summary: \"...\",\n//   summary: [\n//      {\n//         chapter_index: 0,\n//         title: \"...\",\n//         summary: \"...\",\n//         questions: [\"Q1\", \"Q2\", ...],\n//         answers: [\"A1\", \"A2\", ...]\n//      },\n//      ...\n//   ]\n// }\n\nconst chapters = Array.isArray(book.summary) ? book.summary : [];\nconst bookSummary = book.complete_book_summary || \"\";\nconst title = book.title || \"Study Workbook\";\nconst author = book.author || \"\";\nconst accent = \"#264653\";\n\n// Helper: remove numbering from chapter titles\nfunction cleanTitle(title = \"\") {\n  return title.replace(/^(Chapter\\s*\\d+[:.\\-]?\\s*|[0-9IVXLCDM]+\\s+)/i, \"\").trim();\n}\n\nfunction escapeHTML(str = \"\") {\n  return String(str)\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\");\n}\n\n// Build Table of Contents\nconst toc = chapters\n  .map(ch => `<li>${cleanTitle(ch.title)}</li>`)\n  .join(\"\");\n\n// Will be used for the workbook index (global Q&A)\nconst indexEntries = [];\n\nlet html = `\n<html>\n<head>\n  <style>\n\n\n    body {\n      font-family: \"Helvetica Neue\", Arial, sans-serif;\n      padding: 40px;\n      background: #FFFFFF;\n      color: #000000;\n      line-height: 1.6;\n    }\n\n    h1, h2 {\n      text-align: center;\n      color: #000;\n      font-weight: 700;\n      page-break-after: avoid;\n      page-break-inside: avoid;\n    }\n    \n    /* Cover Title */\n    h1 {\n      font-size: 2.4em;\n      margin-top: 1em;\n      margin-bottom: 0.3em;\n    }\n\n#cover h1,\n#cover h2,\n#cover h3 {\n  text-align: center;\n}\n\n    \n  #toc {\n    border: 1px solid #000000;\n    padding: 1em;\n    margin-bottom: 2em;\n  }\n\n  #toc h2 {\n    border: none;\n    margin-bottom: 0.5em;\n  }\n\n  #toc ol {\n    margin-left: 1.5em;\n    line-height: 1.5;\n  }\n\n\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      margin-top: 15px;\n      font-size: 0.95em;\n      background: #FFFFFF;\n    }\n\n    td, th {\n      border: 1px solid #000000;\n      padding: 8px;\n      vertical-align: top;\n    }\n\n    th {\n      font-weight: bold;\n    }\n\n    .chapter {\n      page-break-before: always;\n      margin-top: 60px;\n    }\n\n    .summary {\n      margin-top: 10px;\n      margin-bottom: 20px;\n    }\n\n    .cover {\n      text-align: center;\n      page-break-after: always;\n      margin-top: 200px;\n    }\n\n    ol { margin-left: 25px; }\n\n    .answer-space {\n      border-bottom: 1px solid #000000;\n      height: 25px;\n      margin: 5px 0 15px;\n    }\n\n    @page{\n      @bottom-center {\n        content: \"AI-generated summary. Not affiliated with or endorsed by the original author or publisher.\";\n        font-size: 8.5pt;\n        font-style: italic;\n        color: #777;\n      }\n    }\n\n    footer {\n      margin-top: 50px;\n      text-align: center;\n      font-size: 0.8em;\n      border-top: 1px solid #000000;\n      padding-top: 10px;\n    }\n/* -------------------------\n   Full-page advertisement (last page)\n-------------------------- */\n\n.fullpage-ad {\n  page-break-before: always;\n  position: relative;\n  width: 100%;\n  height: calc(11in - 1.3in); /* Letter height minus @page top+bottom margins */\n}\n\n.fullpage-ad img {\n  width: 100%;\n  height: 100%;\n  object-fit: contain; /* IMPORTANT: don't crop ad */\n  display: block;\n}\n\n/* CTA overlay */\n.ad-cta {\n  position: absolute;\n\n  /* 👇 These values are adjustable once we eyeball placement */\n  bottom: 1.2in;\n  left: 50%;\n  transform: translateX(-50%);\n\n  font-family: \"Open Sans Condensed\", \"Arial Narrow\", Arial, sans-serif;\n  font-weight: 700;\n  font-size: 18pt;\n  letter-spacing: 0.04em;\n\n  color: #ffffff;\n  text-decoration: none;\n  text-align: center;\n\n  /* Subtle legibility boost */\n  text-shadow: 0 1px 3px rgba(0,0,0,0.6);\n}\n\n/* Make entire CTA area clickable but not intrusive */\n.ad-cta span {\n  padding: 10px 24px;\n  display: inline-block;\n}\n.fullpage-ad {\n  margin: -40px; /* cancel body padding */\n}\n@media screen{\n  .ad-cta{\n    /* 👇 These values are adjustable once we eyeball placement */\n    bottom: 1.1in;\n  }\n}\n@media print{\n  .ad-cta{\n      /* 👇 These values are adjustable once we eyeball placement */\n    bottom: 1.90in;\n  }\n}\n  </style>\n</head>\n\n<body>\n\n  <!-- Cover Page -->\n   <section id=\"cover\">\n    <h1>${escapeHTML(title)}</h1>\n    <h3>${escapeHTML(author)}</h3>\n    <h3>Megyk Books Summary — Workbook Style</h3><br />\n \n  </section>\n\n  <!-- Table of Contents -->\n <section id=\"toc\">\n  <h2>Table of Contents</h2>\n  <ol>\n    ${chapters.map(ch => `<li>${cleanTitle(ch.title)}</li>`).join(\"\\n\")}\n  </ol>\n</section>\n\n`;\n\n// -----------------------------\n// LOOP THROUGH CHAPTERS\n// -----------------------------\nfor (const ch of chapters) {\n  const chapterTitle = cleanTitle(ch.title);\n  const questions = Array.isArray(ch.questions) ? ch.questions : [];\n  const answers = Array.isArray(ch.answers) ? ch.answers : [];\n\n  // Add to global index\n  questions.forEach((q, i) => {\n    indexEntries.push({\n      chapter_index: ch.chapter_index,\n      chapter_title: chapterTitle,\n      question: q,\n      answer: answers[i] || \"\"\n    });\n  });\n\n  html += `\n  <div class=\"chapter\">\n    <h2>Chapter ${ch.chapter_index + 1}: ${chapterTitle}</h2>\n\n    ${ch.summary ? `<div class=\"summary\"><p>${ch.summary}</p></div>` : \"\"}\n\n    ${\n      questions.length\n        ? `\n      <h3>Questions for Reflection</h3>\n      <ol>\n        ${questions\n          .map(\n            (q, i) => `\n          <li>\n            <strong>${q}</strong><br/>\n            <div class=\"answer-space\"></div>\n            <div class=\"answer-space\"></div>\n          </li>\n        `\n          )\n          .join(\"\")}\n      </ol>`\n        : \"\"\n    }\n  </div>`;\n}\n\n// -----------------------------\n// COMPLETE BOOK SUMMARY\n// -----------------------------\n/**\nhtml += `\n  <div class=\"chapter\">\n    <h2>Complete Book Summary</h2>\n    <p>${bookSummary}</p>\n  </div>\n`;\n*/\n\n// -----------------------------\n// GLOBAL INDEX — All Q&A\n// -----------------------------\nif (indexEntries.length) {\n  html += `\n  <div class=\"chapter\">\n    <h2>Workbook Index — All Questions & Answers</h2>\n\n    <table>\n      <tr><th>Chapter</th><th>Question</th><th>Answer</th></tr>\n  `;\n\n  let lastChapter = \"\";\n\n  for (const entry of indexEntries) {\n    const chapterLabel =\n      entry.chapter_title !== lastChapter\n        ? `Chapter ${entry.chapter_index + 1}: ${entry.chapter_title}`\n        : \"\";\n\n    html += `\n      <tr>\n        <td>${chapterLabel}</td>\n        <td>${entry.question}</td>\n        <td>${entry.answer}</td>\n      </tr>\n    `;\n\n    lastChapter = entry.chapter_title;\n  }\n\n  html += `\n    </table>\n  </div>\n  `;\n}\n\n// -----------------------------\n// FOOTER\n// -----------------------------\nhtml += `\n<div class=\"fullpage-ad\">\n  <img\n    src=\"https://app.megyk.com/medium-long-a.png\"\n    alt=\"Sponsored full-page advertisement\"\n  />\n\n  <a\n    href=\"https://thenew.gold/wds_in/?utm_source=megyk&utm_medium=${encodeURIComponent(title)}\"\n    class=\"ad-cta\"\n    target=\"_blank\"\n    rel=\"noopener noreferrer\"\n  >\n    <span>TAKE THE SURVEY</span>\n  </a>\n</div>\n\n  <footer>\n    Generated on ${new Date().toLocaleDateString()} by Megyk Books\n     <em>AI-generated summary. Not affiliated with or endorsed by the original author or publisher.</em>\n  </footer>\n\n</body>\n</html>\n`;\n\nreturn [{ json: { html } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        496
+      ],
+      "id": "dc074a08-284c-4812-b9eb-9b3305b81348",
+      "name": "Generate Workbook Layout"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Call \\'Load Book Summary\\'').item.json.style }}",
+                    "rightValue": "narrative",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "0a76ccd4-53fb-4065-bf59-6cc12a45c6cc"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "narrative"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b1aa6ec0-5f4d-4a80-8b82-484c5d5301e2",
+                    "leftValue": "={{ $('Call \\'Load Book Summary\\'').item.json.style }}",
+                    "rightValue": "bullet_points",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "bullet_points"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "14f1b871-0eae-42a8-9429-994680df1189",
+                    "leftValue": "={{ $('Call \\'Load Book Summary\\'').item.json.style }}",
+                    "rightValue": "workbook",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "workbook"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        288
+      ],
+      "id": "a021662d-37e6-4923-8850-3f2e2b9859a2",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* UPDATED NARRATIVE LAYOUT GENERATOR — WORKS WITH NEW INPUT FORMAT */\n\nconst book = items[0].json;\n\n// --- New format fields ---\nconst title = book.title || \"\";\nconst author = book.author || \"\";\nconst chapters = Array.isArray(book.summary) ? book.summary : [];\nconst summary = book.complete_book_summary || \"\";\n\n// -----------------------------\n// Helpers\n// -----------------------------\nfunction escapeHTML(str = \"\") {\n  return String(str)\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\");\n}\n\nfunction cleanTitle(ch, withNumber = false) {\n  let t = ch.title || \"\";\n  t = t.replace(/^(Chapter\\s*\\d+[:.\\-]?\\s*|[0-9IVXLCDM]+\\s+)/i, \"\").trim();\n  return withNumber ? `Chapter ${ch.chapter_index + 1}: ${t}` : t;\n}\n\nconst accent = \"#000000\";\n\n// -----------------------------\n// HTML Layout\n// -----------------------------\nlet html = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <title>${escapeHTML(title)}</title>\n  <style>\n/* -------------------------------------------------------\n   ELEGANT LITERARY STYLE LAYOUT — Megyk Books Edition\n   Designed for WeasyPrint PDF engine\n--------------------------------------------------------- */\n\n\n/* ---------- Page Margins + Running Headers + Footer ---------- */\n\n@page {\n\n\n  @top-right {\n    content: string(chaptertitle);\n    font-size: 9pt;\n    font-style: italic;\n    color: #666;\n  }\n\n  @bottom-center {\n    content: \"AI-generated summary. Not affiliated with or endorsed by the original author or publisher.\";\n    font-size: 8.5pt;\n    font-style: italic;\n    color: #777;\n  }\n}\n\n/* First page (cover) — no headers or footers */\n@page:first {\n  @top-left { content: normal; }\n  @top-right { content: normal; }\n  @bottom-center { content: normal; }\n}\n\n/* -------------------------------------------------------\n   Global Typography  \n--------------------------------------------------------- */\n\nbody {\n  font-family: \"Times New Roman\", \"Nimbus Roman\", serif;\n  font-size: 11pt;\n  line-height: 1.35;\n  color: #111;\n  text-align: left;\n  margin: 0;\n}\n\n/* -------------------------------------------------------\n   Headings  \n--------------------------------------------------------- */\n\nh1, h2 {\n  text-align: center;\n  color: #000;\n  font-weight: 700;\n  line-height: 1.25;\n  page-break-after: avoid;\n  page-break-inside: avoid;\n}\n\n/* Cover Title */\nh1 {\n  font-size: 2.4em;\n  margin-top: 1em;\n  margin-bottom: 0.3em;\n}\n\n/* Section headers */\nh2 {\n  margin-top: 1em;\n  margin-bottom: 0.75em;\n}\n\n/* Chapter titles */\nh3 {\n\n  margin-top: .5em;\n  margin-bottom: 0.55em;\n}\n\n/* -------------------------------------------------------\n   Paragraphs  \n--------------------------------------------------------- */\n\np {\n  margin: 0 0 10px 0;\n  text-indent: 0;\n}\n\nh2 + p,\nh3 + p,\n#overview p,\n#toc p {\n  text-indent: 0;\n}\n\n/* -------------------------------------------------------\n   Overview section — literary introduction style\n   (structure preserved, typography normalized)\n--------------------------------------------------------- */\n\n#overview p {\n  margin: 0 0 10px 0;\n  font-size: 11pt;\n  line-height: 1.35;\n  color: #222;\n}\n\n/* -------------------------------------------------------\n   Table of Contents\n--------------------------------------------------------- */\n\n#toc {\n  border: 1px solid #000;\n  padding: 1.25em 2em;\n  width: 90%;\n  margin: 2.5em auto;\n  background: #fff;\n  page-break-inside: avoid;\n}\n\n#toc ol {\n  list-style-position: outside;\n  padding-left: 1.2em;\n  line-height: 1.35;\n}\n\n#toc li {\n  margin: 0 0 7px 0;\n  font-size: 10.8pt;\n}\n\n/* -------------------------------------------------------\n   Chapters Section + Per-Chapter Behavior\n--------------------------------------------------------- */\n\n#chapters {\n  page-break-before: always;\n}\n\narticle {\n  page-break-inside: avoid;\n  padding-top: 18px;\n  border-top: 1px solid #333;\n  margin-top: 28px;\n}\n\n/* Capture chapter title for running header */\nh3.chapter-title {\n  string-set: chaptertitle content();\n}\n\n/* -------------------------------------------------------\n   Footer Block (end of book)\n--------------------------------------------------------- */\n\nfooter {\n  text-align: center;\n  font-size: 9pt;\n  margin-top: 6em;\n  padding-top: 1.2em;\n  color: #666;\n  border-top: 1px solid #ccc;\n}\n\n/* Capture book title for header on subsequent pages */\n#cover h1 {\n  string-set: booktitle content();\n}\n\n/* Make cover page uniquely styled */\n#cover {\n  text-align: center;\n\n}\n\n#cover em {\n  display: block;\n  margin-top: 0em;\n  font-size: 10pt;\n  color: #666;\n}\n\n/* -------------------------\n   Full-page advertisement (last page)\n-------------------------- */\n\n.fullpage-ad {\n  page-break-before: always;\n  position: relative;\n  width: 100%;\n  height: calc(11in - 1.3in); /* Letter height minus @page top+bottom margins */\n}\n\n.fullpage-ad img {\n  width: 100%;\n  height: 100%;\n  object-fit: contain; /* IMPORTANT: don't crop ad */\n  display: block;\n}\n\n/* CTA overlay */\n.ad-cta {\n  position: absolute;\n  /* 👇 These values are adjustable once we eyeball placement */\n  bottom: 1.2in;\n\n  left: 50%;\n  transform: translateX(-50%);\n\n  font-family: \"Open Sans Condensed\", \"Arial Narrow\", Arial, sans-serif;\n  font-weight: 700;\n  font-size: 18pt;\n  letter-spacing: 0.04em;\n\n  color: #ffffff;\n  text-decoration: none;\n  text-align: center;\n\n  /* Subtle legibility boost */\n  text-shadow: 0 1px 3px rgba(0,0,0,0.6);\n}\n\n/* Make entire CTA area clickable but not intrusive */\n.ad-cta span {\n  padding: 10px 24px;\n  display: inline-block;\n}\n@media screen{\n  .ad-cta{\n    /* 👇 These values are adjustable once we eyeball placement */\n    bottom: 1.1in;\n  }\n}\n@media print{\n  .ad-cta{\n      /* 👇 These values are adjustable once we eyeball placement */\n    bottom: 1.46in;\n  }\n}\n</style>\n\n</head>\n<body>\n\n  <section id=\"cover\">\n    <h1>${escapeHTML(title)}</h1>\n    <h3>${escapeHTML(author)}</h3>\n    <h3>Megyk Books Summary — Narrative Style</h3><br />\n \n  </section>\n  <section id=\"toc\">\n    <h2>Table of Contents</h2>\n    <ol>\n      ${chapters.map(ch => `<li>${escapeHTML(cleanTitle(ch, false))}</li>`).join(\"\")}\n    </ol>\n  </section>\n\n  <section id=\"chapters\">\n    <h2>Chapters</h2>\n`;\n\nfor (const ch of chapters) {\n  html += `\n    <article>\n      <h3>${escapeHTML(cleanTitle(ch, false))}</h3>\n      <p>${escapeHTML(ch.summary)}</p>\n    </article>\n  `;\n}\n\nhtml += `\n  </section>\n\n<div class=\"fullpage-ad\">\n  <img\n    src=\"https://app.megyk.com/medium-long-a.png\"\n    alt=\"Sponsored full-page advertisement\"\n  />\n\n  <a\n    href=\"https://thenew.gold/wds_in/?utm_source=megyk&utm_medium=${encodeURIComponent(title)}\"\n    class=\"ad-cta\"\n    target=\"_blank\"\n    rel=\"noopener noreferrer\"\n  >\n    <span>TAKE THE SURVEY</span>\n  </a>\n</div>\n\n  <footer>\n    Generated by <strong>Megyk Books</strong> — ${new Date().toLocaleDateString()}\n\n    \n  </footer>\n\n</body>\n</html>\n`;\n\nreturn [{ json: { html } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        112
+      ],
+      "id": "ca562d27-6f84-40ae-8073-140ca5342341",
+      "name": "Generate Narrative Layout"
+    },
+    {
+      "parameters": {
+        "content": "## Get Summary v3 CORE\n- Load summaries from Supabase \n- process via layout template",
+        "height": 784,
+        "width": 784
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        -304
+      ],
+      "id": "2cbefab3-f10d-41a3-8f05-a04c396d34c8",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/files/templates/three-page-template.html",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -80
+      ],
+      "id": "13e8008a-9280-43c2-ae4e-c8e6b16729c4",
+      "name": "Read Three-page Template"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.megyk.com",
+            "user-agent": "node",
+            "content-length": "206",
+            "accept": "*/*",
+            "accept-encoding": "br, gzip, deflate",
+            "accept-language": "*",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "pragma": "no-cache",
+            "sec-fetch-mode": "cors",
+            "via": "1.1 Caddy",
+            "x-forwarded-for": "172.19.0.1",
+            "x-forwarded-host": "n8n.megyk.com",
+            "x-forwarded-proto": "https"
+          },
+          "params": {},
+          "query": {
+            "ts": "1775342799957"
+          },
+          "body": {
+            "book_id": "04c7ac03-6d11-4ac6-ba3d-1d556ae8ba22",
+            "preferences": {
+              "style": "narrative",
+              "length": "medium"
+            },
+            "user_id": "ed424ba5-1ccc-452d-b470-329a3e3b1b4b",
+            "timestamp": "2026-04-04T22:46:39.957Z",
+            "locale": "de"
+          },
+          "webhookUrl": "https://n8n.megyk.com/webhook/get_summary_v3",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Call 'Load Book Summary'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read One-page Template": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Tokens with Generated": {
+      "main": [
+        []
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Read One-page Template",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read Three-page Template",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Load Book Summary'": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Replace Tokens with Generated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Replace Tokens with Generated1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Generate Narrative Layout",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Bullet Points Layout",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Workbook Layout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Three-page Template": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4a91d69f-c817-42a2-adde-8bc0e8da4180",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0a1535091d9aa08924749a816438820dbcd60489c6352757a3e5df80f2b6e736"
+  },
+  "id": "icF28UmruuHgkDgd",
+  "tags": []
+}
