@@ -155,7 +155,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         }}
       >
         <AppShell.Header>
-          <Group h="100%" px="md" justify="space-between">
+          <Group h="100%" px={{ base: 'xs', sm: 'md' }} justify="space-between" wrap="nowrap">
             {/* Mobile Logo - only visible on mobile */}
             <Box hiddenFrom="sm">
               <a
@@ -179,7 +179,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             {/* Spacer for desktop to push content right */}
             <Box visibleFrom="sm" />
 
-            <Group gap="md">
+            <Group gap="xs" wrap="nowrap">
               {/* Mobile language toggle */}
               <Box hiddenFrom="sm">
                 <LocaleToggle compact />
