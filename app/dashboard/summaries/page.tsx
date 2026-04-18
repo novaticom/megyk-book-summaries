@@ -1,11 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Container, Title, Text, Stack, Card, Center, Button, Group, Badge, Loader, Table, SimpleGrid, Box, Image } from '@mantine/core'
-import { IconBookmark, IconDownload, IconTrash } from '@tabler/icons-react'
+import { useTranslations } from 'next-intl'
+import { useLocale } from 'next-intl'
+import { Container, Title, Text, Stack, Card, Center, Button, Group, Badge, Loader, Table, SimpleGrid, Box, Image, Divider } from '@mantine/core'
+import { IconBookmark, IconDownload, IconTrash, IconMessage } from '@tabler/icons-react'
 import { SummaryWithBook } from '@/lib/types/summaries'
+import { ChatSessionWithBook } from '@/lib/types/chat'
+import { ChatBookCard } from '@/components/chat/ChatBookCard'
+import { ChatWithBook } from '@/components/chat/ChatWithBook'
 import { getDisplayTitle } from '@/lib/utils/bookTitle'
-import { SUMMARY_STYLE_OPTIONS, SUMMARY_LENGTH_OPTIONS } from '@/lib/types/preferences'
+import { trackSummaryDownloaded } from '@/lib/analytics/gtm'
 import styles from './summaries.module.css'
 
 // Helper functions for book covers
@@ -13,12 +18,12 @@ const getBookCoverPlaceholder = (book: any) => {
   if (book?.cover_image_url) {
     return book.cover_image_url;
   }
-  
+
   // Generate a consistent color based on book title
   const colors = ['3B82F6', '10B981', 'F59E0B', 'EF4444', '8B5CF6', '06B6D4'];
   const displayTitle = getDisplayTitle(book?.title) || book?.title || 'Book';
   const colorIndex = displayTitle.length % colors.length;
-  
+
   return `https://placehold.co/300x450/${colors[colorIndex]}/ffffff?text=${encodeURIComponent(displayTitle.slice(0, 20))}`;
 };
 
@@ -27,13 +32,22 @@ const getFallbackPlaceholder = (book: any) => {
 };
 
 export default function SummariesPage() {
+  const t = useTranslations('summaries')
+  const tCommon = useTranslations('common')
+  const tPrefs = useTranslations('preferences')
+  const locale = useLocale()
   const [summaries, setSummaries] = useState<SummaryWithBook[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [chatSessions, setChatSessions] = useState<ChatSessionWithBook[]>([])
+  const [chatBook, setChatBook] = useState<any>(null)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [loadChatHistory, setLoadChatHistory] = useState(false)
 
   useEffect(() => {
     fetchSummaries()
+    fetchChatSessions()
   }, [])
 
   const fetchSummaries = async () => {
@@ -49,9 +63,21 @@ export default function SummariesPage() {
       setSummaries(data.summaries || [])
     } catch (err) {
       console.error('Error fetching summaries:', err)
-      setError('Failed to load summaries')
+      setError(t('loading'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchChatSessions = async () => {
+    try {
+      const response = await fetch('/api/v1/chat-sessions')
+      if (response.ok) {
+        const data = await response.json()
+        setChatSessions(data.sessions || [])
+      }
+    } catch (err) {
+      console.error('Error fetching chat sessions:', err)
     }
   }
 
@@ -63,9 +89,9 @@ export default function SummariesPage() {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
 
         if (response.status === 404) {
-          alert('PDF file not found. The file may have been deleted or lost. You can delete this summary and regenerate it if needed.')
+          alert(t('fileNotFound'))
         } else {
-          alert(`Failed to download summary: ${errorData.error || 'Unknown error'}`)
+          alert(t('downloadError', { error: errorData.error || 'Unknown error' }))
         }
         return
       }
@@ -90,18 +116,26 @@ export default function SummariesPage() {
       document.body.appendChild(a)
       a.click()
 
+      // Track successful download
+      trackSummaryDownloaded({
+        summary_id: summaryId,
+        book_title: bookTitle,
+        style,
+        length,
+      })
+
       setTimeout(() => {
         window.URL.revokeObjectURL(url)
         document.body.removeChild(a)
       }, 100)
     } catch (err) {
       console.error('Error downloading summary:', err)
-      alert('An unexpected error occurred while downloading the summary.')
+      alert(t('downloadUnexpectedError'))
     }
   }
 
   const handleDelete = async (summaryId: string) => {
-    if (!confirm('Are you sure you want to delete this summary? This action cannot be undone.')) {
+    if (!confirm(t('deleteConfirm'))) {
       return
     }
 
@@ -120,22 +154,35 @@ export default function SummariesPage() {
       setSummaries(summaries.filter(s => s.id !== summaryId))
     } catch (err) {
       console.error('Error deleting summary:', err)
-      alert('Failed to delete summary. Please try again.')
+      alert(t('deleteError'))
     } finally {
       setDeletingId(null)
     }
   }
 
   const getStyleLabel = (style: string) => {
-    return SUMMARY_STYLE_OPTIONS.find(opt => opt.value === style)?.label || style
+    try { return tPrefs(`styles.${style}`) } catch { return style }
   }
 
   const getLengthLabel = (length: string) => {
-    return SUMMARY_LENGTH_OPTIONS.find(opt => opt.value === length)?.label || length
+    try { return tPrefs(`lengths.${length}`) } catch { return length }
+  }
+
+  const handleResumeChat = (session: ChatSessionWithBook) => {
+    setChatBook(session.book)
+    setLoadChatHistory(true)
+    setChatOpen(true)
+  }
+
+  const handleChatClose = () => {
+    setChatOpen(false)
+    setChatBook(null)
+    setLoadChatHistory(false)
+    fetchChatSessions()
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -145,7 +192,7 @@ export default function SummariesPage() {
   }
 
   // Group summaries by book
-  const groupedSummaries = summaries.reduce((acc, summary) => {
+  const summariesByBook = summaries.reduce((acc, summary) => {
     const bookId = summary.book_id
     if (!acc[bookId]) {
       acc[bookId] = {
@@ -157,17 +204,33 @@ export default function SummariesPage() {
     return acc
   }, {} as Record<string, { book: any, summaries: SummaryWithBook[] }>)
 
-  const books = Object.values(groupedSummaries)
+  // Sort chat sessions by most recent
+  const sortedChatSessions = [...chatSessions].sort((a, b) => {
+    const aDate = a.last_message_at ? new Date(a.last_message_at).getTime() : 0
+    const bDate = b.last_message_at ? new Date(b.last_message_at).getTime() : 0
+    return bDate - aDate
+  })
+
+  // Convert summaries by book to array and sort by most recent
+  const summaryBooks = Object.values(summariesByBook).sort((a, b) => {
+    const aDate = a.summaries[0]?.updated_at ? new Date(a.summaries[0].updated_at).getTime() : 0
+    const bDate = b.summaries[0]?.updated_at ? new Date(b.summaries[0].updated_at).getTime() : 0
+    return bDate - aDate
+  })
+
+  const hasChats = chatSessions.length > 0
+  const hasSummaries = summaries.length > 0
+  const hasContent = hasChats || hasSummaries
 
   return (
     <Container size="xl" pt="0" pb="xl">
-      <Stack gap="lg">
+      <Stack gap="xl">
         <div>
           <Title order={1} mb="xs" c="#000000">
-            My Collection
+            {t('title')}
           </Title>
           <Text size="lg" c="#374151">
-            Access all your personalized book summaries
+            {t('subtitle')}
           </Text>
         </div>
 
@@ -176,7 +239,7 @@ export default function SummariesPage() {
             <Center py="xl">
               <Stack align="center" gap="md">
                 <Loader size="lg" type="dots" />
-                <Text c="dimmed">Loading your summaries...</Text>
+                <Text c="dimmed">{t('loading')}</Text>
               </Stack>
             </Center>
           </Card>
@@ -185,196 +248,252 @@ export default function SummariesPage() {
             <Center py="xl">
               <Stack align="center" gap="md">
                 <Text c="red" size="lg">{error}</Text>
-                <Button onClick={fetchSummaries}>Try Again</Button>
+                <Button onClick={fetchSummaries}>{tCommon('retry')}</Button>
               </Stack>
             </Center>
           </Card>
-        ) : summaries.length === 0 ? (
+        ) : !hasContent ? (
           <Card shadow="sm" padding="xl" radius="md" withBorder>
             <Center py="xl">
               <Stack align="center" gap="md">
                 <IconBookmark size={48} stroke={1.5} style={{ opacity: 0.5 }} />
-                <Text size="lg" fw={500}>No Summaries Yet</Text>
+                <Text size="lg" fw={500}>{t('empty')}</Text>
                 <Text size="sm" c="dimmed" ta="center" maw={400}>
-                  Generate your first book summary from the Library page
+                  {t('emptySubtext')}
                 </Text>
               </Stack>
             </Center>
           </Card>
         ) : (
           <>
-            {/* Mobile Card View */}
-            <Box className={styles.mobileView}>
-              <Stack gap="lg">
-                {books.map((bookGroup, idx) => (
-                  <Card key={idx} shadow="sm" padding="lg" radius="md" withBorder>
-                    <Stack gap="md">
-                      {/* Book Header with Cover */}
-                      <Group align="flex-start" gap="md" wrap="nowrap">
-                        <Box className={styles.bookCoverMobile}>
-                          <Image
-                            src={getBookCoverPlaceholder(bookGroup.book)}
-                            fallbackSrc={getFallbackPlaceholder(bookGroup.book)}
-                            alt={`Cover of ${getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || 'Book'}`}
-                            fit="cover"
-                            radius="md"
-                            h={100}
-                            w={67}
-                          />
-                        </Box>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <Text fw={700} size="xl" lineClamp={2}>
-                            {getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || 'Unknown Book'}
-                          </Text>
-                          <Text c="dimmed" size="sm">by {bookGroup.book?.author || 'Unknown Author'}</Text>
-                          <Text c="dimmed" size="xs" mt={4}>
-                            {bookGroup.summaries.length} {bookGroup.summaries.length === 1 ? 'summary' : 'summaries'}
-                          </Text>
-                        </div>
-                      </Group>
+            {/* ==================== CHAT SECTION ==================== */}
+            {hasChats && (
+              <Box>
+                <Group gap="xs" mb="md">
+                  <IconMessage size={24} style={{ color: '#4A7DA5' }} />
+                  <Title order={2} size="h3" c="#000000">
+                    {t('chatHistory')}
+                  </Title>
+                  <Badge variant="light" color="blue" size="sm">
+                    {t('chatCount', { count: chatSessions.length })}
+                  </Badge>
+                </Group>
 
-                      {/* Individual Summaries */}
-                      <Stack gap="sm" style={{ paddingLeft: '16px' }}>
-                        {bookGroup.summaries.map((summary) => (
-                          <Card key={summary.id} padding="md" radius="sm" withBorder style={{ borderLeft: '3px solid var(--mantine-color-blue-5)' }}>
-                            <Stack gap="xs">
-                              <Group gap="xs">
-                                <Badge variant="light" color="green" size="sm">
-                                  {getStyleLabel(summary.style)}
-                                </Badge>
-                                <Badge variant="light" color="blue" size="sm">
-                                  {getLengthLabel(summary.length)}
-                                </Badge>
-                              </Group>
+                <SimpleGrid
+                  cols={{ base: 2, xs: 3, sm: 4, md: 5, lg: 6 }}
+                  spacing={{ base: 'sm', sm: 'md' }}
+                >
+                  {sortedChatSessions.map((session) => (
+                    <ChatBookCard
+                      key={session.id}
+                      session={session}
+                      onClick={() => handleResumeChat(session)}
+                    />
+                  ))}
+                </SimpleGrid>
+              </Box>
+            )}
 
-                              <Text size="xs" c="dimmed">
-                                Generated {formatDate(summary.updated_at)}
+            {/* Divider between sections */}
+            {hasChats && hasSummaries && (
+              <Divider my="md" />
+            )}
+
+            {/* ==================== SUMMARIES SECTION ==================== */}
+            {hasSummaries && (
+              <Box>
+                <Group gap="xs" mb="md">
+                  <IconBookmark size={24} style={{ color: '#4A7DA5' }} />
+                  <Title order={2} size="h3" c="#000000">
+                    {t('summariesTab')}
+                  </Title>
+                  <Badge variant="light" color="blue" size="sm">
+                    {t('summaryCount', { count: summaries.length })}
+                  </Badge>
+                </Group>
+
+                {/* Mobile Card View */}
+                <Box className={styles.mobileView}>
+                  <Stack gap="lg">
+                    {summaryBooks.map((bookGroup, idx) => (
+                      <Card key={idx} shadow="sm" padding="lg" radius="md" withBorder>
+                        <Stack gap="md">
+                          {/* Book Header with Cover */}
+                          <Group align="flex-start" gap="md" wrap="nowrap">
+                            <Box className={styles.bookCoverMobile}>
+                              <Image
+                                src={getBookCoverPlaceholder(bookGroup.book)}
+                                fallbackSrc={getFallbackPlaceholder(bookGroup.book)}
+                                alt={`Cover of ${getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || tCommon('unknownBook')}`}
+                                fit="cover"
+                                radius="md"
+                                h={100}
+                                w={67}
+                                                              />
+                            </Box>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <Text fw={700} size="xl" lineClamp={2}>
+                                {getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || tCommon('unknownBook')}
                               </Text>
+                              <Text c="dimmed" size="sm">by {bookGroup.book?.author || tCommon('unknownAuthor')}</Text>
+                              <Text c="dimmed" size="xs" mt={4}>
+                                {t('bookSummaryCount', { count: bookGroup.summaries.length })}
+                              </Text>
+                            </div>
+                          </Group>
 
-                              <Group gap="xs">
-                                <Button
-                                  size="xs"
-                                  variant="light"
-                                  leftSection={<IconDownload size={14} />}
-                                  onClick={() => handleDownload(summary.id, summary.book?.title || 'summary', summary.length, summary.style)}
-                                  style={{ flex: 1 }}
-                                >
-                                  Download PDF
-                                </Button>
-                                <Button
-                                  size="xs"
-                                  variant="light"
-                                  color="gray"
-                                  onClick={() => handleDelete(summary.id)}
-                                  loading={deletingId === summary.id}
-                                  disabled={deletingId === summary.id}
-                                >
-                                  <IconTrash size={14} />
-                                </Button>
+                          {/* Individual Summaries */}
+                          <Stack gap="sm">
+                            {bookGroup.summaries.map((summary) => (
+                              <Card key={summary.id} padding="md" radius="sm" withBorder style={{ borderLeft: '3px solid var(--mantine-color-blue-5)' }}>
+                                <Stack gap="xs">
+                                  <Group gap="xs">
+                                    <Badge variant="light" color="green" size="sm">
+                                      {getStyleLabel(summary.style)}
+                                    </Badge>
+                                    <Badge variant="light" color="blue" size="sm">
+                                      {getLengthLabel(summary.length)}
+                                    </Badge>
+                                  </Group>
+
+                                  <Text size="xs" c="dimmed">
+                                    {t('generated')} {formatDate(summary.updated_at)}
+                                  </Text>
+
+                                  <Group gap="xs">
+                                    <Button
+                                      size="xs"
+                                      variant="light"
+                                      leftSection={<IconDownload size={14} />}
+                                      onClick={() => handleDownload(summary.id, summary.book?.title || 'summary', summary.length, summary.style)}
+                                      style={{ flex: 1 }}
+                                    >
+                                      {t('downloadPdf')}
+                                    </Button>
+                                    <Button
+                                      size="xs"
+                                      variant="light"
+                                      color="gray"
+                                      onClick={() => handleDelete(summary.id)}
+                                      loading={deletingId === summary.id}
+                                      disabled={deletingId === summary.id}
+                                    >
+                                      <IconTrash size={14} />
+                                    </Button>
+                                  </Group>
+                                </Stack>
+                              </Card>
+                            ))}
+                          </Stack>
+                        </Stack>
+                      </Card>
+                    ))}
+                  </Stack>
+                </Box>
+
+                {/* Desktop Table View */}
+                <Stack gap="lg" className={styles.desktopView}>
+                  {summaryBooks.map((bookGroup, idx) => (
+                    <Card key={idx} shadow="sm" padding="0" radius="md" withBorder>
+                      <Stack gap="md">
+                        {/* Book Header with Cover */}
+                        <div style={{ padding: '20px 20px 12px 20px', borderBottom: '1px solid #e5e7eb' }}>
+                          <Group align="flex-start" gap="lg" wrap="nowrap">
+                            <Image
+                              src={getBookCoverPlaceholder(bookGroup.book)}
+                              fallbackSrc={getFallbackPlaceholder(bookGroup.book)}
+                              alt={`Cover of ${getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || tCommon('unknownBook')}`}
+                              fit="cover"
+                              radius="md"
+                              h={120}
+                              w={80}
+                              className={styles.bookCover}
+                                                          />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <Text fw={700} size="xl">
+                                {getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || tCommon('unknownBook')}
+                              </Text>
+                              <Group gap="md" mt={4}>
+                                <Text c="dimmed" size="sm">by {bookGroup.book?.author || tCommon('unknownAuthor')}</Text>
+                                <Text c="dimmed" size="xs">
+                                  {t('bookSummaryCount', { count: bookGroup.summaries.length })}
+                                </Text>
                               </Group>
-                            </Stack>
-                          </Card>
-                        ))}
-                      </Stack>
-                    </Stack>
-                  </Card>
-                ))}
-              </Stack>
-            </Box>
-
-            {/* Desktop Table View */}
-            <Stack gap="lg" className={styles.desktopView}>
-              {books.map((bookGroup, idx) => (
-                <Card key={idx} shadow="sm" padding="0" radius="md" withBorder>
-                  <Stack gap="md">
-                    {/* Book Header with Cover */}
-                    <div style={{ padding: '20px 20px 12px 20px', borderBottom: '1px solid #e5e7eb' }}>
-                      <Group align="flex-start" gap="lg" wrap="nowrap">
-                        <Image
-                          src={getBookCoverPlaceholder(bookGroup.book)}
-                          fallbackSrc={getFallbackPlaceholder(bookGroup.book)}
-                          alt={`Cover of ${getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || 'Book'}`}
-                          fit="cover"
-                          radius="md"
-                          h={120}
-                          w={80}
-                          className={styles.bookCover}
-                        />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <Text fw={700} size="xl">
-                            {getDisplayTitle(bookGroup.book?.title) || bookGroup.book?.title || 'Unknown Book'}
-                          </Text>
-                          <Group gap="md" mt={4}>
-                            <Text c="dimmed" size="sm">by {bookGroup.book?.author || 'Unknown Author'}</Text>
-                            <Text c="dimmed" size="xs">
-                              {bookGroup.summaries.length} {bookGroup.summaries.length === 1 ? 'summary' : 'summaries'}
-                            </Text>
+                            </div>
                           </Group>
                         </div>
-                      </Group>
-                    </div>
 
-                    {/* Summaries Table */}
-                    <Table.ScrollContainer minWidth={600} style={{ paddingLeft: '44px', paddingBottom: '20px' }}>
-                      <Table highlightOnHover horizontalSpacing="sm" layout="fixed">
-                        <Table.Thead>
-                          <Table.Tr>
-                            <Table.Th style={{ width: '20%' }}>Style</Table.Th>
-                            <Table.Th style={{ width: '20%' }}>Length</Table.Th>
-                            <Table.Th style={{ width: '35%' }}>Generated</Table.Th>
-                            <Table.Th style={{ width: '25%', textAlign: 'right' }}>Actions</Table.Th>
-                          </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                          {bookGroup.summaries.map((summary) => (
-                            <Table.Tr key={summary.id}>
-                              <Table.Td>
-                                <Badge variant="light" color="green" size="sm">
-                                  {getStyleLabel(summary.style)}
-                                </Badge>
-                              </Table.Td>
-                              <Table.Td>
-                                <Badge variant="light" color="blue" size="sm">
-                                  {getLengthLabel(summary.length)}
-                                </Badge>
-                              </Table.Td>
-                              <Table.Td>
-                                <Text size="sm">{formatDate(summary.updated_at)}</Text>
-                              </Table.Td>
-                              <Table.Td style={{ textAlign: 'right' }}>
-                                <Group gap="xs" justify="flex-end">
-                                  <Button
-                                    size="xs"
-                                    variant="light"
-                                    leftSection={<IconDownload size={14} />}
-                                    onClick={() => handleDownload(summary.id, summary.book?.title || 'summary', summary.length, summary.style)}
-                                  >
-                                    Download PDF
-                                  </Button>
-                                  <Button
-                                    size="xs"
-                                    variant="light"
-                                    color="gray"
-                                    onClick={() => handleDelete(summary.id)}
-                                    loading={deletingId === summary.id}
-                                    disabled={deletingId === summary.id}
-                                  >
-                                    <IconTrash size={14} />
-                                  </Button>
-                                </Group>
-                              </Table.Td>
-                            </Table.Tr>
-                          ))}
-                        </Table.Tbody>
-                      </Table>
-                    </Table.ScrollContainer>
-                  </Stack>
-                </Card>
-              ))}
-            </Stack>
+                        {/* Summaries Table */}
+                        <Table.ScrollContainer minWidth={600} style={{ paddingLeft: '20px', paddingRight: '20px', paddingBottom: '20px' }}>
+                          <Table highlightOnHover horizontalSpacing="sm" layout="fixed">
+                            <Table.Thead>
+                              <Table.Tr>
+                                <Table.Th style={{ width: '20%' }}>{t('style')}</Table.Th>
+                                <Table.Th style={{ width: '20%' }}>{t('length')}</Table.Th>
+                                <Table.Th style={{ width: '35%' }}>{t('generated')}</Table.Th>
+                                <Table.Th style={{ width: '25%', textAlign: 'right' }}>{t('actions')}</Table.Th>
+                              </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                              {bookGroup.summaries.map((summary) => (
+                                <Table.Tr key={summary.id}>
+                                  <Table.Td>
+                                    <Badge variant="light" color="green" size="sm">
+                                      {getStyleLabel(summary.style)}
+                                    </Badge>
+                                  </Table.Td>
+                                  <Table.Td>
+                                    <Badge variant="light" color="blue" size="sm">
+                                      {getLengthLabel(summary.length)}
+                                    </Badge>
+                                  </Table.Td>
+                                  <Table.Td>
+                                    <Text size="sm">{formatDate(summary.updated_at)}</Text>
+                                  </Table.Td>
+                                  <Table.Td style={{ textAlign: 'right' }}>
+                                    <Group gap="xs" justify="flex-end">
+                                      <Button
+                                        size="xs"
+                                        variant="light"
+                                        leftSection={<IconDownload size={14} />}
+                                        onClick={() => handleDownload(summary.id, summary.book?.title || 'summary', summary.length, summary.style)}
+                                      >
+                                        {t('downloadPdf')}
+                                      </Button>
+                                      <Button
+                                        size="xs"
+                                        variant="light"
+                                        color="gray"
+                                        onClick={() => handleDelete(summary.id)}
+                                        loading={deletingId === summary.id}
+                                        disabled={deletingId === summary.id}
+                                      >
+                                        <IconTrash size={14} />
+                                      </Button>
+                                    </Group>
+                                  </Table.Td>
+                                </Table.Tr>
+                              ))}
+                            </Table.Tbody>
+                          </Table>
+                        </Table.ScrollContainer>
+                      </Stack>
+                    </Card>
+                  ))}
+                </Stack>
+              </Box>
+            )}
           </>
         )}
       </Stack>
+
+      <ChatWithBook
+        opened={chatOpen}
+        onClose={handleChatClose}
+        book={chatBook}
+        loadHistory={loadChatHistory}
+        skipHistoryConfirmation={loadChatHistory}
+      />
     </Container>
   )
 }

@@ -281,7 +281,7 @@
       <div class="top-left">
         <h1>{{TITLE}}</h1>
 	<h2>{{SUBTITLE}}</h2>
-        <p class="subtitle">{{AUTHOR}}’s Megyk Book Summary</p>
+        <p class="subtitle">{{BOOK_SUMMARY_LINE}}</p>
       </div>
 
       <!-- Replace with your real logo path or data URI -->
@@ -291,48 +291,48 @@
     </div>
 
     <div class="core-box">
-      <div class="label">Core Idea</div>
+      <div class="label">{{LABEL_CORE_IDEA}}</div>
       <p>{{CORE_IDEA}}</p>
     </div>
 
     <div class="columns">
       <div class="col-left">
         <div class="section">
-          <h3>What problem does the book solve?</h3>
+          <h3>{{LABEL_PROBLEM_SOLVED}}</h3>
           <p>{{PROBLEM_SOLVED}}</p>
         </div>
 
         <div class="section">
-          <h3>Why does this problem matter?</h3>
+          <h3>{{LABEL_WHY_IT_MATTERS}}</h3>
           <p>{{WHY_IT_MATTERS}}</p>
         </div>
 
         <div class="section">
-          <h3>What is the author’s main thesis?</h3>
+          <h3>{{LABEL_MAIN_THESIS}}</h3>
           <p>{{MAIN_THESIS}}</p>
         </div>
         <!-- TL;DR Quote (balances ad on right) -->
         <div class="quote">
-          “{{TLDR_QUOTE_OR_SUMMARY_LINE}}”
+          "{{TLDR_QUOTE_OR_SUMMARY_LINE}}"
         </div>
       </div>
 
       <div class="col-right">
         <div class="section">
-          <h3>Biggest insights/principles?</h3>
+          <h3>{{LABEL_INSIGHTS}}</h3>
           <ul>
             {{INSIGHTS_LI}}
           </ul>
         </div>
 
         <div class="section">
-          <h3>Practical steps</h3>
+          <h3>{{LABEL_STEPS}}</h3>
           <ul>
             {{STEPS_LI}}
           </ul>
         </div>
         <div class="ad-block">
-				  <div class="ad-label">PAID ADVERTISEMENT:</div>
+				  <div class="ad-label">{{LABEL_PAID_AD}}</div>
 	                  <a
                         href="{{AD_CLICK_URL}}"
                         target="_blank"
@@ -340,7 +340,7 @@
                       >
                       <img
                         class="ad-image"
-                        src="https://app.megyk.com/two-minute-survey-cta.png"
+                        src="{{AD_BANNER_URL}}"
                         alt="Sponsored survey advertisement"
                       />
                       </a>

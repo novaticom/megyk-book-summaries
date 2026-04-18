@@ -1,20 +1,22 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { 
-  Container, 
-  Center, 
-  Text, 
-  Stack, 
-  Title, 
-  Button, 
+import { useTranslations } from 'next-intl';
+import {
+  Container,
+  Center,
+  Text,
+  Stack,
+  Title,
+  Button,
   Group,
   Box,
 } from '@mantine/core';
-import { IconArrowRight, IconSparkles } from '@tabler/icons-react';
+import { IconArrowRight } from '@tabler/icons-react';
 
 export default function Home() {
   const router = useRouter();
+  const t = useTranslations('home');
 
   // This page only shows for unauthenticated users
   // Authenticated users are redirected server-side via middleware
@@ -38,13 +40,16 @@ export default function Home() {
         <Center style={{ width: '100%' }}>
           <Stack align="center" gap="xl" ta="center">
             <Stack gap="md" align="center">
-              <IconSparkles size={64} stroke={1.5} color="#2563EB" />
+              <img
+                src="/chat-with-book/chat-with-book.png"
+                alt="Chat with book"
+                style={{ height: 80, width: 'auto' }}
+              />
               <Title order={1} size="3rem" fw={800} c="#000000">
-                Book Summaries
+                {t('headline')}
               </Title>
               <Text size="xl" c="#374151" maw={600}>
-                Discover personalized AI-generated book summaries tailored just for you. 
-                Dive into thousands of books in minutes, not hours.
+                {t('description')}
               </Text>
             </Stack>
             
@@ -53,27 +58,27 @@ export default function Home() {
                 size="lg"
                 variant="filled"
                 rightSection={<IconArrowRight size={20} />}
-                onClick={() => router.push('/auth/signin')}
-                style={{ 
+                onClick={() => router.push('/auth/signup')}
+                style={{
                   fontWeight: 600,
-                  backgroundColor: '#2563EB',
+                  backgroundColor: '#4A7DA5',
                   color: '#FFFFFF',
                 }}
               >
-                Get Started
+                {t('getStarted')}
               </Button>
               <Button
                 size="lg"
                 variant="outline"
                 c="#000000"
-                style={{ 
+                style={{
                   borderColor: '#374151',
                   color: '#000000',
                   fontWeight: 600
                 }}
                 onClick={() => router.push('/auth/signin')}
               >
-                Sign In
+                {t('signIn')}
               </Button>
             </Group>
           </Stack>

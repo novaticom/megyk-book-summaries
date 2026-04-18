@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { Modal, Stack, Text, Button, Slider, Box, Loader, Center, Alert, Group, Badge, Paper, TextInput, ThemeIcon, Tooltip, ActionIcon } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { IconAlertCircle, IconSparkles, IconCheck, IconCoins, IconGift, IconSend, IconCopy, IconLoader2, IconArrowLeft } from '@tabler/icons-react'
@@ -15,6 +16,7 @@ import {
 } from '@/lib/types/preferences'
 import { Book } from '@/lib/types/books'
 import { getDisplayTitle } from '@/lib/utils/bookTitle'
+import { trackSummaryGenerated, trackReferralInviteSent, trackReferralLinkCopied } from '@/lib/analytics/gtm'
 import { getSummaryCreditCost, formatCredits, CreditBalance } from '@/lib/types/credits'
 import { refreshCreditBalance } from '@/components/credits'
 
@@ -27,6 +29,9 @@ interface GenerateSummaryModalProps {
 }
 
 export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryModalProps) {
+  const t = useTranslations('summary')
+  const tCommon = useTranslations('common')
+  const tPrefs = useTranslations('preferences')
   const [screen, setScreen] = useState<ModalScreen>('summary')
   const [styleIndex, setStyleIndex] = useState(
     SUMMARY_STYLE_OPTIONS.findIndex(opt => opt.value === DEFAULT_PREFERENCES.style)
@@ -158,7 +163,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
 
   const handleSendInvite = async () => {
     if (!inviteEmail.trim()) {
-      setInviteError('Please enter an email address')
+      setInviteError(t('inviteError'))
       return
     }
 
@@ -176,17 +181,20 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
       const data = await response.json()
 
       if (!response.ok) {
-        setInviteError(data.error || 'Failed to send invite')
+        setInviteError(data.error || t('inviteError'))
         return
       }
 
-      setInviteSuccess(`Invite sent to ${inviteEmail}!`)
+      // Track referral invite sent
+      trackReferralInviteSent({ invite_method: 'modal' })
+
+      setInviteSuccess(t('inviteSent', { email: inviteEmail }))
       setInviteEmail('')
       setInviteName('')
 
       setTimeout(() => setInviteSuccess(null), 3000)
     } catch (err) {
-      setInviteError('Failed to send invite. Please try again.')
+      setInviteError(t('inviteError'))
     } finally {
       setInviteSending(false)
     }
@@ -198,6 +206,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
       const link = referralLink || await fetchReferralLink()
       if (link) {
         await navigator.clipboard.writeText(link)
+        trackReferralLinkCopied()
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       }
@@ -213,6 +222,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
         textArea.select()
         document.execCommand('copy')
         document.body.removeChild(textArea)
+        trackReferralLinkCopied()
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       }
@@ -285,9 +295,18 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
             document.body.removeChild(a)
           }, 100)
 
+          // Track successful summary generation
+          trackSummaryGenerated({
+            book_id: book.id,
+            book_title: book.title,
+            style,
+            length,
+            credit_cost: creditCost,
+          })
+
           notifications.show({
-            title: 'Summary Generated!',
-            message: `Your personalized summary for "${getDisplayTitle(book.title) || book.title}" has been downloaded.`,
+            title: t('successTitle'),
+            message: t('successDescription', { title: getDisplayTitle(book.title) || book.title }),
             color: 'green',
             icon: <IconCheck size={18} />,
             autoClose: 5000,
@@ -303,7 +322,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
           const data = await response.json().catch(() => ({}))
           console.log('Response data:', data)
 
-          setErrorMessage('Expected PDF response but received a different format. Please try again.')
+          setErrorMessage(t('formatError'))
         }
       } else if (response.status === 402) {
         // Insufficient credits - switch to invite screen
@@ -311,11 +330,11 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
       } else {
         console.error('Response not OK:', response.status, response.statusText)
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-        setErrorMessage(error.error || `Failed to generate summary (${response.status})`)
+        setErrorMessage(error.error || t('unexpectedError'))
       }
     } catch (error) {
       console.error('Error generating summary:', error)
-      setErrorMessage('An unexpected error occurred. Please try again.')
+      setErrorMessage(t('unexpectedError'))
     } finally {
       setGenerating(false)
     }
@@ -333,13 +352,13 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
             <ActionIcon
               variant="subtle"
               onClick={() => setScreen('summary')}
-              aria-label="Back to summary"
+              aria-label={t('backToSummary')}
             >
               <IconArrowLeft size={18} />
             </ActionIcon>
           )}
           <Text size="xl" fw={700}>
-            {screen === 'summary' ? 'Generate Summary' : 'Earn More Credits'}
+            {screen === 'summary' ? t('generateTitle') : t('earnMoreCredits')}
           </Text>
         </Group>
       }
@@ -384,7 +403,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
           )}
 
           {errorMessage && (
-            <Alert icon={<IconAlertCircle size={16} />} color="red" title="Error">
+            <Alert icon={<IconAlertCircle size={16} />} color="red">
               {errorMessage}
             </Alert>
           )}
@@ -393,7 +412,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
             <Center py="xl">
               <Stack align="center" gap="md">
                 <Loader size="lg" type="dots" />
-                <Text c="dimmed">Loading preferences...</Text>
+                <Text c="dimmed">{t('loading')}</Text>
               </Stack>
             </Center>
           ) : generating ? (
@@ -402,10 +421,10 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                 <Loader size="xl" type="dots" />
                 <Stack align="center" gap="xs">
                   <Text size="lg" fw={600}>
-                    Generating Your Personalized Summary
+                    {t('generating')}
                   </Text>
                   <Text size="sm" c="dimmed" ta="center" maw={400}>
-                    AI is analyzing "{book?.title}" and creating a custom summary based on your preferences. This could take up to a few minutes...
+                    {t('generatingDescription', { title: book?.title || '' })}
                   </Text>
                 </Stack>
               </Stack>
@@ -415,10 +434,10 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
               <Stack gap="md">
                 <div>
                   <Text size="md" fw={600} mb="xs">
-                    Summary Style
+                    {t('style')}
                   </Text>
                   <Text size="sm" c="dimmed" mb="md">
-                    Choose how you want your book summary presented
+                    {t('styleDescription')}
                   </Text>
                 </div>
                 <Box px="md" pb="md" mx="sm">
@@ -430,7 +449,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                     step={1}
                     marks={SUMMARY_STYLE_OPTIONS.map((option, index) => ({
                       value: index,
-                      label: option.label
+                      label: tPrefs(`styles.${option.value}`)
                     }))}
                     size="lg"
                     styles={{
@@ -440,10 +459,10 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                         fontSize: '0.75rem',
                         transform: 'translateX(-50%)'
                       },
-                      bar: { backgroundColor: '#2563EB', opacity: 0.8 },
+                      bar: { backgroundColor: '#4A7DA5', opacity: 0.8 },
                       thumb: {
-                        borderColor: '#2563EB',
-                        backgroundColor: '#2563EB',
+                        borderColor: '#4A7DA5',
+                        backgroundColor: '#4A7DA5',
                         opacity: 0.8
                       }
                     }}
@@ -458,10 +477,10 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                   }}
                 >
                   <Text fw={600} size="md" mb="xs">
-                    {SUMMARY_STYLE_OPTIONS[styleIndex].label}
+                    {tPrefs(`styles.${SUMMARY_STYLE_OPTIONS[styleIndex].value}`)}
                   </Text>
                   <Text size="sm" c="dimmed">
-                    {SUMMARY_STYLE_OPTIONS[styleIndex].description}
+                    {tPrefs(`styles.${SUMMARY_STYLE_OPTIONS[styleIndex].value}_desc`)}
                   </Text>
                 </Box>
               </Stack>
@@ -469,10 +488,10 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
               <Stack gap="md">
                 <div>
                   <Text size="md" fw={600} mb="xs">
-                    Summary Length
+                    {t('length')}
                   </Text>
                   <Text size="sm" c="dimmed" mb="md">
-                    Select your preferred max summary length
+                    {t('lengthDescription')}
                   </Text>
                 </div>
                 <Box px="md" pb="md" mx="sm">
@@ -484,7 +503,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                     step={1}
                     marks={SUMMARY_LENGTH_OPTIONS.map((option, index) => ({
                       value: index,
-                      label: option.label
+                      label: tPrefs(`lengths.${option.value}`)
                     }))}
                     size="lg"
                     styles={{
@@ -494,10 +513,10 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                         fontSize: '0.75rem',
                         transform: 'translateX(-50%)'
                       },
-                      bar: { backgroundColor: '#2563EB', opacity: 0.8 },
+                      bar: { backgroundColor: '#4A7DA5', opacity: 0.8 },
                       thumb: {
-                        borderColor: '#2563EB',
-                        backgroundColor: '#2563EB',
+                        borderColor: '#4A7DA5',
+                        backgroundColor: '#4A7DA5',
                         opacity: 0.8
                       }
                     }}
@@ -512,10 +531,10 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                   }}
                 >
                   <Text fw={600} size="md" mb="xs">
-                    {SUMMARY_LENGTH_OPTIONS[lengthIndex].label}
+                    {tPrefs(`lengths.${SUMMARY_LENGTH_OPTIONS[lengthIndex].value}`)}
                   </Text>
                   <Text size="sm" c="dimmed">
-                    {SUMMARY_LENGTH_OPTIONS[lengthIndex].description}
+                    {tPrefs(`lengths.${SUMMARY_LENGTH_OPTIONS[lengthIndex].value}_desc`)}
                   </Text>
                 </Box>
               </Stack>
@@ -531,9 +550,9 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
               >
                 <Group justify="space-between" align="center">
                   <Group gap="xs">
-                    <IconCoins size={18} style={{ color: canAfford ? '#2563EB' : '#dc2626' }} />
+                    <IconCoins size={18} style={{ color: canAfford ? '#4A7DA5' : '#dc2626' }} />
                     <Text size="sm" fw={600}>
-                      Cost: {formatCredits(creditCost)}
+                      {t('cost', { cost: formatCredits(creditCost) })}
                     </Text>
                   </Group>
                   {creditBalance && (
@@ -542,28 +561,27 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                       color={canAfford ? 'blue' : 'red'}
                       size="lg"
                     >
-                      Balance: {formatCredits(creditBalance.current_balance)}
+                      {t('balance', { balance: formatCredits(creditBalance.current_balance) })}
                     </Badge>
                   )}
                 </Group>
                 {!canAfford && creditBalance && (
                   <Stack gap="xs" mt="xs">
                     <Text size="xs" c="red">
-                      You need {formatCredits(shortfall)} more credits
+                      {t('needMoreCredits', { amount: formatCredits(shortfall) })}
                     </Text>
                     <Group gap="xs" align="center">
-                      <IconGift size={14} style={{ color: 'var(--mantine-color-violet-6)' }} />
+                      <IconGift size={14} style={{ color: 'var(--mantine-color-blue-5)' }} />
                       <Text size="xs" c="dimmed">
                         <Text
                           span
-                          c="violet"
+                          c="blue"
                           fw={600}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setScreen('invite')}
                         >
-                          Invite friends
+                          {t('inviteFriends', { bonus: REFERRAL_REWARDS.referrer_bonus.toLocaleString() })}
                         </Text>
-                        {' '}to earn more MC's! ({REFERRAL_REWARDS.referrer_bonus.toLocaleString()} per friend)
                       </Text>
                     </Group>
                   </Stack>
@@ -578,11 +596,11 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                 loading={generating}
                 disabled={!book || !canAfford}
                 style={{
-                  backgroundColor: canAfford ? '#2563EB' : undefined,
+                  backgroundColor: canAfford ? '#4A7DA5' : undefined,
                   color: canAfford ? '#ffffff' : undefined,
                 }}
               >
-                {canAfford ? 'Generate Summary' : 'Insufficient Credits'}
+                {canAfford ? t('generate') : t('insufficientTitle')}
               </Button>
             </>
           )}
@@ -593,7 +611,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
       {screen === 'invite' && (
         <Stack gap="lg">
           <Text size="sm" c="dimmed">
-            You need {formatCredits(shortfall)} more credits to generate this summary.
+            {t('creditsRequired', { amount: formatCredits(shortfall) })}
           </Text>
 
           <Box
@@ -605,11 +623,11 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
           >
             <Stack gap="xs">
               <Group justify="space-between">
-                <Text size="sm" c="dimmed">Required:</Text>
+                <Text size="sm" c="dimmed">{t('required')}</Text>
                 <Text size="sm" fw={600} c="red">{formatCredits(creditCost)}</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="sm" c="dimmed">Your balance:</Text>
+                <Text size="sm" c="dimmed">{t('yourBalance')}</Text>
                 <Text size="sm" fw={600}>{formatCredits(creditBalance?.current_balance || 0)}</Text>
               </Group>
               <Box
@@ -620,7 +638,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                 }}
               >
                 <Group justify="space-between">
-                  <Text size="sm" c="dimmed">Shortfall:</Text>
+                  <Text size="sm" c="dimmed">{t('shortfall')}</Text>
                   <Text size="sm" fw={700} c="red">{formatCredits(shortfall)}</Text>
                 </Group>
               </Box>
@@ -632,20 +650,20 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
             p="md"
             radius="md"
             style={{
-              background: 'linear-gradient(135deg, var(--mantine-color-violet-0) 0%, var(--mantine-color-indigo-0) 100%)',
-              border: '1px solid var(--mantine-color-violet-2)',
+              background: 'linear-gradient(135deg, var(--mantine-color-blue-0) 0%, var(--mantine-color-blue-1) 100%)',
+              border: '1px solid var(--mantine-color-blue-2)',
             }}
           >
             <Group gap="sm" mb="md" wrap="nowrap">
-              <ThemeIcon size="lg" radius="md" variant="light" color="violet">
+              <ThemeIcon size="lg" radius="md" variant="light" color="blue">
                 <IconGift size={20} />
               </ThemeIcon>
               <div>
                 <Text size="sm" fw={600}>
-                  Invite a friend, get {REFERRAL_REWARDS.referrer_bonus.toLocaleString()} MC!
+                  {t('referralEarn', { bonus: REFERRAL_REWARDS.referrer_bonus.toLocaleString() })}
                 </Text>
                 <Text size="xs" c="dimmed">
-                  They get {REFERRAL_REWARDS.referred_bonus.toLocaleString()} MC too
+                  {t('referralTheyGet', { bonus: REFERRAL_REWARDS.referred_bonus.toLocaleString() })}
                 </Text>
               </div>
             </Group>
@@ -666,14 +684,14 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                   </Text>
                 </Group>
                 <Text size="xs" c="dimmed" mt="xs">
-                  Want to invite another friend?
+                  {t('inviteAnother')}
                 </Text>
               </Box>
             ) : (
               <Stack gap="sm">
                 <Group gap="sm" grow>
                   <TextInput
-                    placeholder="Friend's email"
+                    placeholder={t('friendEmail')}
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.currentTarget.value)}
                     onKeyDown={handleInviteKeyDown}
@@ -683,7 +701,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                     style={{ flex: 2 }}
                   />
                   <TextInput
-                    placeholder="Name (optional)"
+                    placeholder={t('friendName')}
                     value={inviteName}
                     onChange={(e) => setInviteName(e.currentTarget.value)}
                     onKeyDown={handleInviteKeyDown}
@@ -701,15 +719,15 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                   disabled={inviteSending || !inviteEmail.trim()}
                   fullWidth
                 >
-                  {inviteSending ? 'Sending...' : 'Send Invite'}
+                  {inviteSending ? t('sending') : t('sendInvite')}
                 </Button>
               </Stack>
             )}
 
             {/* Copy link fallback */}
             <Group justify="center" mt="md" gap="xs">
-              <Text size="xs" c="dimmed">or</Text>
-              <Tooltip label={copied ? 'Copied!' : 'Copy your referral link'}>
+              <Text size="xs" c="dimmed">{tCommon('or')}</Text>
+              <Tooltip label={copied ? tCommon('copied') : tCommon('copyLink')}>
                 <Button
                   variant="subtle"
                   size="xs"
@@ -717,18 +735,18 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
                   leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
                   onClick={handleCopyLink}
                 >
-                  {copied ? 'Copied!' : 'Copy Link'}
+                  {copied ? tCommon('copied') : tCommon('copyLink')}
                 </Button>
               </Tooltip>
             </Group>
           </Paper>
 
           <Text size="xs" c="dimmed" ta="center">
-            Subscription plans coming soon!
+            {t('plansComingSoon')}
           </Text>
 
           <Button variant="default" onClick={() => setScreen('summary')}>
-            Back to Summary
+            {t('backToSummary')}
           </Button>
         </Stack>
       )}

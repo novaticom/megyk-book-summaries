@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card, Group, Stack, Text, Button, Alert, Slider, Box, Loader, Center } from '@mantine/core'
 import { IconCheck, IconAlertCircle } from '@tabler/icons-react'
 import {
@@ -13,6 +14,7 @@ import {
 } from '@/lib/types/preferences'
 
 export function PreferencesForm() {
+  const t = useTranslations('preferences')
   const [styleIndex, setStyleIndex] = useState(
     SUMMARY_STYLE_OPTIONS.findIndex(opt => opt.value === DEFAULT_PREFERENCES.style)
   )
@@ -103,15 +105,15 @@ export function PreferencesForm() {
       if (response.ok) {
         // Update cache with new preferences
         sessionStorage.setItem('user_preferences', JSON.stringify({ style, length }))
-        setSuccessMessage('Preferences saved successfully!')
+        setSuccessMessage(t('saveSuccess'))
         setTimeout(() => setSuccessMessage(null), 3000)
       } else {
         const error = await response.json()
-        setErrorMessage(error.error || 'Failed to save preferences')
+        setErrorMessage(error.error || t('saveError'))
       }
     } catch (error) {
       console.error('Error saving preferences:', error)
-      setErrorMessage('An unexpected error occurred')
+      setErrorMessage(t('unexpectedError'))
     } finally {
       setSaving(false)
     }
@@ -123,7 +125,7 @@ export function PreferencesForm() {
         <Center py="xl">
           <Stack align="center" gap="md">
             <Loader size="lg" type="dots" />
-            <Text c="dimmed">Loading preferences...</Text>
+            <Text c="dimmed">{t('loading')}</Text>
           </Stack>
         </Center>
       </Card>
@@ -148,10 +150,10 @@ export function PreferencesForm() {
         <Stack gap="xl">
           <div>
             <Text size="lg" fw={600} mb="xs">
-              Summary Style
+              {t('style')}
             </Text>
             <Text size="sm" c="dimmed" mb="md">
-              Choose how you want your book summaries presented
+              {t('styleDescription')}
             </Text>
           </div>
           <Box px="md" pb="md">
@@ -163,15 +165,15 @@ export function PreferencesForm() {
               step={1}
               marks={SUMMARY_STYLE_OPTIONS.map((option, index) => ({
                 value: index,
-                label: option.label
+                label: t(`styles.${option.value}`)
               }))}
               size="lg"
               styles={{
                 markLabel: { marginTop: 8, whiteSpace: 'nowrap' },
-                bar: { backgroundColor: '#2563EB', opacity: 0.8 },
-                thumb: { 
-                  borderColor: '#2563EB',
-                  backgroundColor: '#2563EB',
+                bar: { backgroundColor: '#4A7DA5', opacity: 0.8 },
+                thumb: {
+                  borderColor: '#4A7DA5',
+                  backgroundColor: '#4A7DA5',
                   opacity: 0.8
                 }
               }}
@@ -186,10 +188,10 @@ export function PreferencesForm() {
             }}
           >
             <Text fw={600} size="lg" mb="xs">
-              {SUMMARY_STYLE_OPTIONS[styleIndex].label}
+              {t(`styles.${SUMMARY_STYLE_OPTIONS[styleIndex].value}`)}
             </Text>
             <Text size="md" c="dimmed">
-              {SUMMARY_STYLE_OPTIONS[styleIndex].description}
+              {t(`styles.${SUMMARY_STYLE_OPTIONS[styleIndex].value}_desc`)}
             </Text>
           </Box>
         </Stack>
@@ -199,10 +201,10 @@ export function PreferencesForm() {
         <Stack gap="xl">
           <div>
             <Text size="lg" fw={600} mb="xs">
-              Summary Length
+              {t('length')}
             </Text>
             <Text size="sm" c="dimmed" mb="md">
-              Select your preferred max summary length
+              {t('lengthDescription')}
             </Text>
           </div>
           <Box px="md" pb="md">
@@ -214,15 +216,15 @@ export function PreferencesForm() {
               step={1}
               marks={SUMMARY_LENGTH_OPTIONS.map((option, index) => ({
                 value: index,
-                label: option.label
+                label: t(`lengths.${option.value}`)
               }))}
               size="lg"
               styles={{
                 markLabel: { marginTop: 8, whiteSpace: 'nowrap' },
-                bar: { backgroundColor: '#2563EB', opacity: 0.8 },
-                thumb: { 
-                  borderColor: '#2563EB',
-                  backgroundColor: '#2563EB',
+                bar: { backgroundColor: '#4A7DA5', opacity: 0.8 },
+                thumb: {
+                  borderColor: '#4A7DA5',
+                  backgroundColor: '#4A7DA5',
                   opacity: 0.8
                 }
               }}
@@ -237,10 +239,10 @@ export function PreferencesForm() {
             }}
           >
             <Text fw={600} size="lg" mb="xs">
-              {SUMMARY_LENGTH_OPTIONS[lengthIndex].label}
+              {t(`lengths.${SUMMARY_LENGTH_OPTIONS[lengthIndex].value}`)}
             </Text>
             <Text size="md" c="dimmed">
-              {SUMMARY_LENGTH_OPTIONS[lengthIndex].description}
+              {t(`lengths.${SUMMARY_LENGTH_OPTIONS[lengthIndex].value}_desc`)}
             </Text>
           </Box>
         </Stack>
@@ -252,7 +254,7 @@ export function PreferencesForm() {
           loading={saving}
           size="md"
         >
-          Save Preferences
+          {t('save')}
         </Button>
       </Group>
     </Stack>

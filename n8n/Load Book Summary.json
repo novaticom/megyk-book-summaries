@@ -1,0 +1,248 @@
+{
+  "name": "Load Book Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d614d04f-24f0-4b18-93d2-d1b3564c6432",
+              "name": "book_id",
+              "value": "={{ $json.book_id }}",
+              "type": "string"
+            },
+            {
+              "id": "20851b51-a402-4876-a8dd-8514fb977d5a",
+              "name": "length",
+              "value": "={{ $json.length }}",
+              "type": "string"
+            },
+            {
+              "id": "1aa8e8ae-72a8-488b-b27a-06cc7f3a7376",
+              "name": "style",
+              "value": "={{ $json.style }}",
+              "type": "string"
+            },
+            {
+              "id": "599b0cdb-9ed9-42bb-911b-2ff6891c7530",
+              "name": "locale",
+              "value": "={{ $json.locale }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -592,
+        176
+      ],
+      "id": "1aa74593-b09b-480a-aa4c-d3738226c394",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "books",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.book_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        80
+      ],
+      "id": "85866cef-1a32-45f3-8c9a-b4b079647aa8",
+      "name": "Load Book",
+      "credentials": {
+        "supabaseApi": {
+          "id": "fdzgJDGuPA2JozKn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "summaries_v2",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "book_id",
+              "keyValue": "={{ $json.book_id }}"
+            },
+            {
+              "keyName": "style",
+              "keyValue": "={{ $('Config').item.json.style }}"
+            },
+            {
+              "keyName": "length",
+              "keyValue": "={{ $('Config').item.json.length }}"
+            },
+            {
+              "keyName": "locale",
+              "keyValue": "={{ $json.locale }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        272
+      ],
+      "id": "c4685d73-b904-4f9f-868e-d10c0d88b271",
+      "name": "Load Summary",
+      "credentials": {
+        "supabaseApi": {
+          "id": "fdzgJDGuPA2JozKn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "id",
+              "field2": "book_id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -144,
+        176
+      ],
+      "id": "fe470076-0312-433e-81bd-d4458ddc526e",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "book_id"
+            },
+            {
+              "name": "style"
+            },
+            {
+              "name": "length"
+            },
+            {
+              "name": "locale"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -848,
+        176
+      ],
+      "id": "b70af487-3793-4a60-aac0-b8e80c7e3fb5",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "book_id": "04c7ac03-6d11-4ac6-ba3d-1d556ae8ba22",
+          "style": "narrative",
+          "length": "medium",
+          "locale": "de"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Load Book",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Book": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Summary": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        []
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "27d46bfd-cffd-40f7-9823-ec80c7f46329",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0a1535091d9aa08924749a816438820dbcd60489c6352757a3e5df80f2b6e736"
+  },
+  "id": "TFbZMklKeSxB7159",
+  "tags": []
+}

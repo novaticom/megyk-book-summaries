@@ -1,19 +1,31 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createCreditService } from '@/lib/services/credits';
-import { getChatMessageCreditCost } from '@/lib/types/credits';
 import { createReferralService } from '@/lib/services/referrals';
+import { streamChatResponse } from '@/lib/services/chat';
+import { getLocale } from 'next-intl/server';
 
-const getWebhookUrl = () => {
-  const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
-  if (!n8nWebhookUrl) return null;
+/**
+ * Save a chat message to the database
+ */
+async function saveChatMessage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  chatSessionId: string,
+  role: 'user' | 'assistant',
+  content: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('chat_messages')
+    .insert({
+      chat_session_id: chatSessionId,
+      role,
+      content,
+    })
 
-  const normalized = n8nWebhookUrl.replace(/\/+$/, '');
-  const lastSlash = normalized.lastIndexOf('/');
-  const base = lastSlash === -1 ? `${normalized}/` : normalized.slice(0, lastSlash + 1);
-
-  return `${base}book_chat`;
-};
+  if (error) {
+    console.error('Error saving chat message:', error)
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -27,6 +39,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { book_id: bookId, message } = body || {};
 
+    console.log('[book-chat] Request received', {
+      bookId,
+      userId: user.id,
+      messageLength: message?.length,
+    });
+
     if (!bookId || !message) {
       return NextResponse.json(
         { error: 'Book ID and message are required' },
@@ -34,9 +52,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check credit balance before processing chat message
+    // Check credit balance
     const creditService = createCreditService(supabase);
-    const chatCost = getChatMessageCreditCost();
     const creditCheck = await creditService.checkChatAffordability(user.id);
 
     if (!creditCheck.has_sufficient_credits) {
@@ -51,36 +68,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get or create chat session for tracking
+    // Get or create chat session
     const chatSession = await creditService.getOrCreateChatSession(user.id, bookId);
+    const locale = await getLocale();
 
-    const webhookUrl = getWebhookUrl();
-    if (!webhookUrl) {
-      return NextResponse.json(
-        { error: 'N8N webhook URL not configured' },
-        { status: 500 }
-      );
-    }
-
-    const webhookResponse = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: user.id,
-        book_id: bookId,
-        message,
-      }),
+    // Generate streaming response natively
+    const chatStream = await streamChatResponse({
+      bookId,
+      userMessage: message,
+      chatSessionId: chatSession?.id || null,
+      locale,
+      mode: 'standard',
+      supabase,
     });
 
-    if (!webhookResponse.ok) {
-      return NextResponse.json(
-        { error: 'Failed to fetch chat response' },
-        { status: 502 }
-      );
-    }
-
-    // Deduct credits after successful webhook call
-    // We deduct here because the stream has started successfully
+    // Deduct credits after stream starts successfully
     const creditTransaction = await creditService.deductForChat(
       user.id,
       bookId,
@@ -88,38 +90,64 @@ export async function POST(request: Request) {
     );
 
     if (!creditTransaction) {
-      console.error('Failed to deduct credits for chat message, but message was processed');
-      // Note: We don't fail the request here since the chat has already started
-      // This should be monitored and resolved manually if it occurs
+      console.error('[book-chat] Failed to deduct credits, but chat was processed');
     }
 
-    // Activate referral if this is the user's first action (chat or summary)
-    // This awards bonus credits to both referrer and referred user
+    // Activate referral if first action
     const referralService = createReferralService(supabase);
     referralService.activateReferral(user.id, 'chat').catch((error) => {
       console.error('Failed to activate referral:', error);
-      // Don't fail the request if referral activation fails
     });
 
-    // Stream the response from n8n to enable real-time updates
-    // n8n sends NDJSON (newline-delimited JSON) for streaming responses
-    if (webhookResponse.body) {
-      return new Response(webhookResponse.body, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        },
-      });
-    }
+    // Pipe through a transform to capture the full response for DB persistence
+    let fullAssistantResponse = ''
 
-    // Fallback for responses without a body
-    return NextResponse.json({
-      reply: '',
-      data: null,
-    });
+    const transformStream = new TransformStream({
+      transform(chunk, controller) {
+        controller.enqueue(chunk)
+
+        const text = new TextDecoder().decode(chunk)
+        const lines = text.split('\n')
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) continue
+
+          try {
+            const data = JSON.parse(trimmed)
+            if (data?.type === 'item' && typeof data?.content === 'string') {
+              fullAssistantResponse += data.content
+            }
+          } catch {
+            // Ignore parse errors
+          }
+        }
+      },
+      async flush() {
+        console.log('[book-chat] Stream complete', {
+          sessionId: chatSession?.id,
+          responseLength: fullAssistantResponse.length,
+        })
+
+        if (chatSession?.id && fullAssistantResponse) {
+          await saveChatMessage(supabase, chatSession.id, 'user', message)
+          await saveChatMessage(supabase, chatSession.id, 'assistant', fullAssistantResponse)
+          console.log('[book-chat] Messages saved')
+        }
+      }
+    })
+
+    const transformedStream = chatStream.pipeThrough(transformStream)
+
+    return new Response(transformedStream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    })
   } catch (error) {
-    console.error('Error in book chat webhook:', error);
+    console.error('Error in book chat:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

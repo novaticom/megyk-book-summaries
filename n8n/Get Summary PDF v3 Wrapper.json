@@ -1,0 +1,233 @@
+{
+  "name": "Get Summary PDF v3 Wrapper",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "402f3f5c-02e1-493b-ab1e-81db7f5daa54",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a699b957-57c8-4c4b-97b9-5ce769a8121a",
+      "name": "Webhook",
+      "webhookId": "402f3f5c-02e1-493b-ab1e-81db7f5daa54"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "icF28UmruuHgkDgd",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/icF28UmruuHgkDgd",
+          "cachedResultName": "Get Summary PDF v3 CORE"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "6e7b79be-925e-4936-948d-4fd847dd0e77",
+      "name": "Call 'Get Summary PDF v3 CORE'"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://pdf.megyk.com/html-to-pdf",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "html",
+              "value": "={{ $json.html }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        0
+      ],
+      "id": "6099fd00-2478-42fc-bb6e-d3784d245c78",
+      "name": "HTML 2 PDF Service",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AK2nObMbf1AjgZti",
+          "name": "PDF Service API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "93bcaa67-5d39-4eee-96ce-900e357530cc",
+              "name": "html",
+              "value": "={{ $json.html }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "2ef1beff-f5a6-4159-a2b2-d39c42954c2e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/pdf"
+              },
+              {
+                "name": "Content-Disposition",
+                "value": "attachment; filename=\"document.pdf\""
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        896,
+        0
+      ],
+      "id": "03780065-4d55-400a-af9c-fc1f5a42f90d",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.megyk.com",
+            "user-agent": "node",
+            "content-length": "206",
+            "accept": "*/*",
+            "accept-encoding": "br, gzip, deflate",
+            "accept-language": "*",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "pragma": "no-cache",
+            "sec-fetch-mode": "cors",
+            "via": "1.1 Caddy",
+            "x-forwarded-for": "172.19.0.1",
+            "x-forwarded-host": "n8n.megyk.com",
+            "x-forwarded-proto": "https"
+          },
+          "params": {},
+          "query": {
+            "ts": "1775409963671"
+          },
+          "body": {
+            "book_id": "04c7ac03-6d11-4ac6-ba3d-1d556ae8ba22",
+            "preferences": {
+              "style": "narrative",
+              "length": "medium"
+            },
+            "user_id": "bfb1e2f2-353c-4cf7-807e-4be63ed7cfff",
+            "timestamp": "2026-04-05T17:26:03.671Z",
+            "locale": "de"
+          },
+          "webhookUrl": "https://n8n.megyk.com/webhook/get_summary_v3",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Call 'Get Summary PDF v3 CORE'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML 2 PDF Service": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTML 2 PDF Service",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Get Summary PDF v3 CORE'": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ff1ea163-ee46-4db2-aa0c-bbf967f86624",
+  "meta": {
+    "instanceId": "0a1535091d9aa08924749a816438820dbcd60489c6352757a3e5df80f2b6e736"
+  },
+  "id": "OQIV3gBXzBvneVjw",
+  "tags": []
+}

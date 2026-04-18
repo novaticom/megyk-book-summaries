@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   AppShell,
   Group,
@@ -22,25 +23,27 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { TourHelpButton } from '@/components/tour/TourHelpButton';
 import { CreditBalance } from '@/components/credits';
+import { LocaleToggle } from '@/components/dashboard/LocaleToggle';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const navigation = [
-  { label: 'Home', icon: IconHome, href: '/dashboard' },
-  { label: 'Library', icon: IconBook, href: '/dashboard/library' },
-  { label: 'My Collection', icon: IconBookmark, href: '/dashboard/summaries' },
-  { label: 'Profile', icon: IconUser, href: '/dashboard/profile' },
-  { label: 'Preferences', icon: IconAdjustments, href: '/dashboard/preferences' },
-];
-
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const t = useTranslations('nav');
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showMobileNav, setShowMobileNav] = useState(true);
   const lastScrollY = useRef(0);
   const pathname = usePathname();
   const router = useRouter();
+
+  const navigation = [
+    { label: t('home'), icon: IconHome, href: '/dashboard' },
+    { label: t('library'), icon: IconBook, href: '/dashboard/library' },
+    { label: t('myCollection'), icon: IconBookmark, href: '/dashboard/summaries' },
+    { label: t('profile'), icon: IconUser, href: '/dashboard/profile' },
+    { label: t('preferences'), icon: IconAdjustments, href: '/dashboard/preferences' },
+  ];
 
   // Load user data
   useEffect(() => {
@@ -52,7 +55,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const handleScroll = (e: Event) => {
       const target = e.target as HTMLElement;
       const currentScrollY = target.scrollTop;
-      
+
       if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
         // Scrolling down & past threshold - hide
         setShowMobileNav(false);
@@ -60,7 +63,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         // Scrolling up - show
         setShowMobileNav(true);
       }
-      
+
       lastScrollY.current = currentScrollY;
     };
 
@@ -76,20 +79,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     try {
       console.log('[DashboardLayout] Loading user data...');
       const supabase = createClient();
-      
+
       // Add timeout to prevent hanging
-      const timeoutPromise = new Promise<never>((_, reject) => 
+      const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Auth timeout after 5s')), 5000)
       );
-      
+
       const authPromise = supabase.auth.getUser();
       const result = await Promise.race([authPromise, timeoutPromise]);
-      
+
       if (result.error) {
         console.error('[DashboardLayout] Auth error:', result.error);
         return;
       }
-      
+
       if (result.data?.user) {
         console.log('[DashboardLayout] User loaded:', result.data.user.email);
         setUserEmail(result.data.user.email || null);
@@ -111,7 +114,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const items = navigation.map((item) => (
     <NavLink
-      key={item.label}
+      key={item.href}
       active={pathname === item.href}
       label={item.label}
       leftSection={<item.icon size={20} stroke={1.5} />}
@@ -152,31 +155,35 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         }}
       >
         <AppShell.Header>
-          <Group h="100%" px="md" justify="space-between">
+          <Group h="100%" px={{ base: 'xs', sm: 'md' }} justify="space-between" wrap="nowrap">
             {/* Mobile Logo - only visible on mobile */}
             <Box hiddenFrom="sm">
               <a
                 href="/"
-                style={{ 
-                  textDecoration: 'none', 
+                style={{
+                  textDecoration: 'none',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                 }}
                 className="hover:opacity-80"
               >
-                <img 
-                  src="/megyk-logo-no-book.png" 
-                  alt="Megyk Books" 
+                <img
+                  src="/megyk-logo-no-book.png"
+                  alt="Megyk Books"
                   style={{ height: '40px', width: 'auto' }}
                 />
               </a>
             </Box>
-            
+
             {/* Spacer for desktop to push content right */}
             <Box visibleFrom="sm" />
-            
-            <Group gap="md">
+
+            <Group gap="xs" wrap="nowrap">
+              {/* Mobile language toggle */}
+              <Box hiddenFrom="sm">
+                <LocaleToggle compact />
+              </Box>
               <CreditBalance compact />
               {userEmail && (
                 <Text size="sm" c="dimmed" visibleFrom="sm">
@@ -187,7 +194,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 variant="default"
                 size="lg"
                 onClick={handleLogout}
-                title="Logout"
+                title={t('logout')}
                 style={{
                   backgroundColor: '#ffffff',
                   border: '1px solid #e5e7eb',
@@ -202,16 +209,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <AppShell.Navbar visibleFrom="sm">
           {/* Logo Section */}
-          <AppShell.Section 
-            style={{ 
+          <AppShell.Section
+            style={{
               padding: '24px 16px',
               borderBottom: '1px solid #e5e7eb',
             }}
           >
             <a
               href="/"
-              style={{ 
-                textDecoration: 'none', 
+              style={{
+                textDecoration: 'none',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -219,18 +226,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               }}
               className="hover:opacity-80"
             >
-              <img 
-                src="/megyk.svg" 
-                alt="Megyk Books" 
+              <img
+                src="/new-logo.png"
+                alt="Megyk Books"
                 style={{ height: '120px', width: 'auto' }}
               />
             </a>
           </AppShell.Section>
-          
+
           {/* Navigation Section */}
           <AppShell.Section grow p="md">
             {items}
             <TourHelpButton />
+            <LocaleToggle />
           </AppShell.Section>
         </AppShell.Navbar>
 
@@ -256,7 +264,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <Group h="100%" px="xs" justify="space-around" gap={0}>
           {navigation.slice(0, 4).map((item) => (
             <UnstyledButton
-              key={item.label}
+              key={item.href}
               onClick={() => router.push(item.href)}
               style={{
                 flex: 1,
@@ -266,7 +274,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '4px',
-                color: pathname === item.href ? '#2563EB' : '#374151',
+                color: pathname === item.href ? '#4A7DA5' : '#374151',
                 transition: 'color 0.2s ease',
               }}
             >

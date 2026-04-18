@@ -84,7 +84,7 @@
 
 .bookCard:hover {
   transform: scale(1.05);
-  border-color: #2563EB;
+  border-color: #4A7DA5;
   box-shadow: 
     0 8px 16px rgba(37, 99, 235, 0.2),
     0 4px 8px rgba(37, 99, 235, 0.1);
@@ -167,9 +167,9 @@
 
 .generateButton {
   backdrop-filter: blur(10px);
-  border: 1px solid #2563EB;
+  border: 1px solid #4A7DA5;
   transition: all 0.2s ease;
-  background: #2563EB !important;
+  background: #4A7DA5 !important;
   color: #ffffff !important;
   font-weight: 600;
 }
@@ -223,7 +223,7 @@
 .control:hover {
   background: rgba(37, 99, 235, 0.1);
   border-color: rgba(37, 99, 235, 0.4);
-  color: #2563EB;
+  color: #4A7DA5;
 }
 
 .control:hover:first-child {

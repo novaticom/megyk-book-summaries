@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createCreditService } from '@/lib/services/credits'
+import { createSummaryGenerationService } from '@/lib/services/summary-generation'
 import { getSummaryCreditCost } from '@/lib/types/credits'
 import { SummaryStyle, SummaryLength } from '@/lib/types/preferences'
 import { createReferralService } from '@/lib/services/referrals'
+import { getLocale } from 'next-intl/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,18 +44,6 @@ export async function POST(request: NextRequest) {
         .toLowerCase()
     }
 
-    const getBookFilename = async (bookId: string, length: string, style: string) => {
-      const { data: book } = await supabase
-        .from('books')
-        .select('title')
-        .eq('id', bookId)
-        .single()
-
-      const bookTitle = book?.title || 'book'
-      const sanitizedTitle = sanitizeFilename(bookTitle)
-      return `${sanitizedTitle}_${length}_${style}.pdf`
-    }
-
     // Check credit balance before generating summary
     const creditService = createCreditService(supabase)
     const style = preferences.style as SummaryStyle
@@ -74,171 +64,110 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Trigger n8n webhook for summary generation
-    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL
-
-    if (!n8nWebhookUrl) {
-      return NextResponse.json(
-        { error: 'N8N webhook URL not configured' },
-        { status: 500 }
-      )
-    }
-
-    const webhookPayload = {
-      book_id,
-      preferences: {
-        style: preferences.style,
-        length: preferences.length
-      },
-      user_id: user.id,
-      timestamp: new Date().toISOString()
-    }
+    const locale = await getLocale()
 
     try {
-      const cacheBustedUrl = `${n8nWebhookUrl}${n8nWebhookUrl.includes('?') ? '&' : '?'}ts=${Date.now()}`
+      // Generate summary PDF using the new service (replaces n8n webhook)
+      const summaryService = createSummaryGenerationService(supabase)
+      const startTime = Date.now()
 
-      const webhookResponse = await fetch(cacheBustedUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-        cache: 'no-store',
-        body: JSON.stringify(webhookPayload)
-      })
-
-      if (!webhookResponse.ok) {
-        console.error('n8n webhook failed:', webhookResponse.status, webhookResponse.statusText)
-        return NextResponse.json(
-          { error: 'Failed to trigger summary generation' },
-          { status: 502 }
-        )
-      }
-
-      // Check if response is PDF binary
-      const contentType = webhookResponse.headers.get('content-type') || ''
-
-      if (contentType.includes('application/pdf') || contentType.includes('application/octet-stream')) {
-        // Get generation metrics from response headers if available
-        const tokensSpent = webhookResponse.headers.get('x-tokens-spent')
-        const generationTime = webhookResponse.headers.get('x-generation-time')
-
-        // Stream PDF binary directly to browser
-        const pdfBuffer = await webhookResponse.arrayBuffer()
-
-        // Stable storage path per user/book/style/length for idempotency
-        const storagePath = `${user.id}/${book_id}/${preferences.length}_${preferences.style}.pdf`
-
-        // Upload PDF to Supabase Storage
-        const { error: uploadError } = await supabase.storage
-          .from('summaries')
-          .upload(storagePath, Buffer.from(pdfBuffer), {
-            contentType: 'application/pdf',
-            upsert: true
-          })
-
-        if (uploadError) {
-          console.error('Error uploading PDF to storage:', uploadError)
-          return NextResponse.json(
-            { error: 'Failed to save summary PDF' },
-            { status: 500 }
-          )
-        }
-
-        // Create database record
-        const { data: summaryData, error: summaryError } = await supabase
-          .from('summaries')
-          .upsert({
-            user_id: user.id,
-            book_id,
-            style: preferences.style,
-            length: preferences.length,
-            file_path: storagePath,
-            tokens_spent: tokensSpent ? parseInt(tokensSpent) : null,
-            generation_time: generationTime ? parseFloat(generationTime) : null,
-          }, {
-            onConflict: 'user_id,book_id,style,length'
-          })
-          .select()
-          .single()
-
-        if (summaryError) {
-          console.error('Error saving summary record:', summaryError)
-          // Clean up uploaded file if DB upsert fails
-          await supabase.storage.from('summaries').remove([storagePath])
-          return NextResponse.json(
-            { error: 'Failed to save summary record' },
-            { status: 500 }
-          )
-        }
-
-        // Deduct credits after successful summary generation
-        const { data: bookData } = await supabase
-          .from('books')
-          .select('title')
-          .eq('id', book_id)
-          .single()
-
-        const creditTransaction = await creditService.deductForSummary(
-          user.id,
-          style,
-          length,
-          summaryData.id,
-          bookData?.title
-        )
-
-        if (!creditTransaction) {
-          console.error('Failed to deduct credits for summary, but summary was generated')
-          // Note: We don't fail the request here since the summary was already generated
-          // This should be monitored and resolved manually if it occurs
-        }
-
-        // Activate referral if this is the user's first action (chat or summary)
-        // This awards bonus credits to both referrer and referred user
-        const referralService = createReferralService(supabase)
-        referralService.activateReferral(user.id, 'summary').catch((error) => {
-          console.error('Failed to activate referral:', error)
-          // Don't fail the request if referral activation fails
-        })
-
-        const filename = await getBookFilename(book_id, preferences.length, preferences.style)
-
-        // Return PDF with appropriate headers for download
-        return new NextResponse(pdfBuffer, {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="${filename}"`,
-            'Content-Length': pdfBuffer.byteLength.toString(),
-          },
-        })
-      }
-
-      // If not PDF, handle as JSON response
-      const webhookData = await webhookResponse.json().catch(() => ({}))
-
-      // TODO: Log summary request in database when schema is ready
-      // const { data, error } = await supabase
-      //   .from('summary_requests')
-      //   .insert({
-      //     user_id: 'bfb1e2f2-353c-4cf7-807e-4be63ed7cfff',
-      //     book_id,
-      //     preferences,
-      //     status: 'pending'
-      //   })
-
-      return NextResponse.json({
-        message: 'Summary generation triggered successfully',
+      const { pdf: pdfBuffer, book } = await summaryService.generateSummaryPdf(
         book_id,
-        preferences,
-        webhook_response: webhookData
+        style,
+        length,
+        locale
+      )
+
+      const generationTime = (Date.now() - startTime) / 1000
+
+      // Stable storage path per user/book/style/length/locale for idempotency
+      // Include locale in path so en/de PDFs don't overwrite each other
+      const storagePath = `${user.id}/${book_id}/${preferences.length}_${preferences.style}_${locale}.pdf`
+
+      // Upload PDF to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('summaries')
+        .upload(storagePath, Buffer.from(pdfBuffer), {
+          contentType: 'application/pdf',
+          upsert: true
+        })
+
+      if (uploadError) {
+        console.error('Error uploading PDF to storage:', uploadError)
+        return NextResponse.json(
+          { error: 'Failed to save summary PDF' },
+          { status: 500 }
+        )
+      }
+
+      // Create database record (includes locale for i18n support)
+      const { data: summaryData, error: summaryError } = await supabase
+        .from('summaries')
+        .upsert({
+          user_id: user.id,
+          book_id,
+          style: preferences.style,
+          length: preferences.length,
+          locale,
+          file_path: storagePath,
+          tokens_spent: null, // No tokens spent since we use pre-generated content
+          generation_time: generationTime,
+        }, {
+          onConflict: 'user_id,book_id,style,length,locale'
+        })
+        .select()
+        .single()
+
+      if (summaryError) {
+        console.error('Error saving summary record:', summaryError)
+        // Clean up uploaded file if DB upsert fails
+        await supabase.storage.from('summaries').remove([storagePath])
+        return NextResponse.json(
+          { error: 'Failed to save summary record' },
+          { status: 500 }
+        )
+      }
+
+      // Deduct credits after successful summary generation
+      const creditTransaction = await creditService.deductForSummary(
+        user.id,
+        style,
+        length,
+        summaryData.id,
+        book.title
+      )
+
+      if (!creditTransaction) {
+        console.error('Failed to deduct credits for summary, but summary was generated')
+        // Note: We don't fail the request here since the summary was already generated
+        // This should be monitored and resolved manually if it occurs
+      }
+
+      // Activate referral if this is the user's first action (chat or summary)
+      // This awards bonus credits to both referrer and referred user
+      const referralService = createReferralService(supabase)
+      referralService.activateReferral(user.id, 'summary').catch((error) => {
+        console.error('Failed to activate referral:', error)
+        // Don't fail the request if referral activation fails
       })
-    } catch (webhookError) {
-      console.error('Error calling n8n webhook:', webhookError)
+
+      const sanitizedTitle = sanitizeFilename(book.title || 'book')
+      const filename = `${sanitizedTitle}_${length}_${style}.pdf`
+
+      // Return PDF with appropriate headers for download
+      return new NextResponse(pdfBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Content-Length': pdfBuffer.byteLength.toString(),
+        },
+      })
+    } catch (generationError) {
+      console.error('Error generating summary:', generationError)
       return NextResponse.json(
-        { error: 'Failed to trigger summary generation' },
-        { status: 502 }
+        { error: generationError instanceof Error ? generationError.message : 'Failed to generate summary' },
+        { status: 500 }
       )
     }
   } catch (error) {

@@ -1,18 +1,21 @@
 import { Container, Title, Text, Button, Stack } from '@mantine/core';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getTranslations('notFound');
+
   return (
     <Container size="sm" py="xl" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
       <Stack align="center" gap="lg" ta="center">
         <Title order={1} size="4rem" fw={800} c="#000000">
-          404
+          {t('code')}
         </Title>
         <Title order={2} c="#374151">
-          Page Not Found
+          {t('title')}
         </Title>
         <Text size="lg" c="#374151" maw={400}>
-          The page you're looking for doesn't exist or has been moved.
+          {t('description')}
         </Text>
         <Stack gap="sm" mt="md">
           <Button
@@ -21,11 +24,11 @@ export default function NotFound() {
             size="lg"
             style={{
               fontWeight: 600,
-              backgroundColor: '#2563EB',
+              backgroundColor: '#4A7DA5',
               color: '#FFFFFF',
             }}
           >
-            Go Home
+            {t('goHome')}
           </Button>
           <Button
             component={Link}
@@ -39,11 +42,10 @@ export default function NotFound() {
               fontWeight: 600
             }}
           >
-            Go to Dashboard
+            {t('goToDashboard')}
           </Button>
         </Stack>
       </Stack>
     </Container>
   );
 }
-

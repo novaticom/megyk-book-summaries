@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Carousel } from '@mantine/carousel';
 import type { EmblaCarouselType } from 'embla-carousel';
 import {
@@ -65,6 +66,8 @@ const BookCard = memo(function BookCard({
   onGenerateSummary,
   onOpenChat,
 }: BookCardProps) {
+  const t = useTranslations('carousel');
+  const tGenres = useTranslations('genres');
   return (
     <Card
       className={styles.bookCard}
@@ -98,7 +101,7 @@ const BookCard = memo(function BookCard({
                     color: '#000000'
                   }}
                 >
-                  {book.genre}
+                  {tGenres.has(book.genre!) ? tGenres(book.genre as any) : book.genre}
                 </Badge>
               )}
               {book.default_summary_pdf_url ? (
@@ -110,12 +113,12 @@ const BookCard = memo(function BookCard({
                     size="sm"
                     className={styles.generateButton}
                     style={{
-                      backgroundColor: '#2563EB',
+                      backgroundColor: '#4A7DA5',
                       color: '#ffffff',
                     }}
                     id={isFirstCard ? 'tour-book-get-summary' : undefined}
                   >
-                    Get Summary
+                    {t('getSummary')}
                   </Button>
                   <Button
                     variant="light"
@@ -127,14 +130,14 @@ const BookCard = memo(function BookCard({
                       color: '#000000',
                     }}
                   >
-                    Custom
+                    {t('custom')}
                   </Button>
                   <ActionIcon
                     variant="light"
                     size="lg"
                     onClick={() => onOpenChat(book)}
-                    aria-label="Chat with book"
-                    style={{ backgroundColor: 'rgba(243, 244, 246, 0.92)', color: '#2563EB' }}
+                    aria-label={t('chatWithBook')}
+                    style={{ backgroundColor: 'rgba(243, 244, 246, 0.92)', color: '#4A7DA5' }}
                     id={isFirstCard ? 'tour-book-chat' : undefined}
                   >
                     <img
@@ -159,14 +162,14 @@ const BookCard = memo(function BookCard({
                     }}
                     id={isFirstCard ? 'tour-book-get-summary' : undefined}
                   >
-                    Get Summary
+                    {t('getSummary')}
                   </Button>
                   <ActionIcon
                     variant="light"
                     size="lg"
                     onClick={() => onOpenChat(book)}
-                    aria-label="Chat with book"
-                    style={{ backgroundColor: 'rgba(243, 244, 246, 0.92)', color: '#2563EB' }}
+                    aria-label={t('chatWithBook')}
+                    style={{ backgroundColor: 'rgba(243, 244, 246, 0.92)', color: '#4A7DA5' }}
                     id={isFirstCard ? 'tour-book-chat' : undefined}
                   >
                     <img

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Card,
   Text,
@@ -14,7 +15,6 @@ import {
   Alert,
   Button,
   Box,
-  Image,
   Container,
 } from '@mantine/core';
 import {
@@ -22,11 +22,11 @@ import {
   IconSparkles,
 } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
-import { SUMMARY_STYLE_OPTIONS, SUMMARY_LENGTH_OPTIONS } from '@/lib/types/preferences';
 import { BookCarousel } from '@/components/carousel/BookCarousel';
+import { TagFilter } from '@/components/carousel/TagFilter';
 import { ChatWithBook } from '@/components/chat/ChatWithBook';
 import { GenerateSummaryModal } from '@/components/summary/GenerateSummaryModal';
-import { Book } from '@/lib/types/books';
+import { Book, BookTag } from '@/lib/types/books';
 import { getDisplayTitle } from '@/lib/utils/bookTitle';
 
 interface RecentSummary {
@@ -51,6 +51,7 @@ function HeroSection({
   onOpenChat: (book: Book) => void;
   onGetSummary: (book: Book) => void;
 }) {
+  const t = useTranslations('dashboard');
   // Default placeholder if no book provided
   const displayTitle = getDisplayTitle(book?.title) || book?.title;
   const currentBook = book ? {
@@ -70,11 +71,11 @@ function HeroSection({
   return (
     <Box 
       style={{
-        background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+        background: 'linear-gradient(135deg, #EDF3F7 0%, #D4E2ED 100%)',
         borderRadius: '16px',
         position: 'relative',
         overflow: 'hidden',
-        border: '1px solid rgba(37, 99, 235, 0.2)',
+        border: '1px solid rgba(74, 125, 165, 0.2)',
       }}
       p={{ base: 'lg', sm: 'xl', md: '3rem 2rem' }}
     >
@@ -87,25 +88,22 @@ function HeroSection({
       >
         {/* Mobile Layout - Centered */}
         <Stack align="center" gap="md">
-          <Box
-            style={{
-              perspective: '1200px',
-              position: 'relative',
-            }}
-          >
-            <Image
+          <Box style={{ perspective: '1200px', position: 'relative', flexShrink: 0 }}>
+            <img
               src={currentBook.cover}
               alt={currentBook.title}
-              h={260}
-              w={173}
-              radius="md"
               style={{
+                width: 173,
+                height: 260,
+                objectFit: 'cover',
+                                borderRadius: 8,
+                display: 'block',
                 transform: 'rotateX(-22deg) rotateY(12deg)',
                 transformStyle: 'preserve-3d',
-                boxShadow: 
+                boxShadow:
                   '8px -6px 24px rgba(0, 0, 0, 0.15), ' +
                   '12px -10px 40px rgba(0, 0, 0, 0.1), ' +
-                  '4px -3px 12px rgba(37, 99, 235, 0.2)',
+                  '4px -3px 12px rgba(74, 125, 165, 0.2)',
               }}
             />
           </Box>
@@ -114,12 +112,12 @@ function HeroSection({
             size="md" 
             variant="filled"
             style={{ 
-              backgroundColor: '#2563EB',
+              backgroundColor: '#4A7DA5',
               color: '#FFFFFF',
-              border: '1px solid #2563EB',
+              border: '1px solid #4A7DA5',
             }}
           >
-            FEATURED
+            {t('featured')}
           </Badge>
         </Stack>
 
@@ -154,13 +152,13 @@ function HeroSection({
                 height: 56,
                 '--button-bg': '#ffffff',
                 '--button-hover': '#f3f4f6',
-                '--button-color': '#2563EB',
-                '--button-bd': '1px solid rgba(37, 99, 235, 0.25)',
+                '--button-color': '#4A7DA5',
+                '--button-bd': '1px solid rgba(74, 125, 165, 0.25)',
               } as any
             }
             fullWidth
           >
-            Chat With Book
+            {t('chatWithBook')}
           </Button>
 
           <Button
@@ -173,13 +171,13 @@ function HeroSection({
             style={{
               fontWeight: 600,
               height: 56,
-              backgroundColor: '#2563EB',
+              backgroundColor: '#4A7DA5',
               color: '#FFFFFF',
               border: '1px solid transparent',
             }}
             fullWidth
           >
-            Get Summary
+            {t('getSummary')}
           </Button>
         </Stack>
       </Stack>
@@ -194,27 +192,22 @@ function HeroSection({
         visibleFrom="md"
       >
         {/* Book Cover */}
-        <Box
-          style={{
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            perspective: '1500px',
-          }}
-        >
-          <Image
+        <Box style={{ flexShrink: 0, perspective: '1500px' }}>
+          <img
             src={currentBook.cover}
             alt={currentBook.title}
-            height={280}
-            width={187}
-            radius="md"
             style={{
+              width: 187,
+              height: 280,
+              objectFit: 'cover',
+                            borderRadius: 8,
+              display: 'block',
               transform: 'rotateX(-25deg) rotateY(15deg)',
               transformStyle: 'preserve-3d',
-              boxShadow: 
+              boxShadow:
                 '12px -10px 35px rgba(0, 0, 0, 0.12), ' +
                 '18px -15px 60px rgba(0, 0, 0, 0.08), ' +
-                '6px -5px 18px rgba(37, 99, 235, 0.15)',
+                '6px -5px 18px rgba(74, 125, 165, 0.15)',
             }}
           />
         </Box>
@@ -225,13 +218,13 @@ function HeroSection({
             size="lg" 
             variant="filled"
             style={{ 
-              backgroundColor: '#2563EB',
+              backgroundColor: '#4A7DA5',
               color: '#FFFFFF',
-              border: '1px solid #2563EB',
+              border: '1px solid #4A7DA5',
               width: 'fit-content'
             }}
           >
-            FEATURED
+            {t('featured')}
           </Badge>
           
           <Title order={1} size="2.5rem" c="#000000" style={{ lineHeight: 1.2, textAlign: 'left' }}>
@@ -263,12 +256,12 @@ function HeroSection({
                   height: 60,
                   '--button-bg': '#ffffff',
                   '--button-hover': '#f3f4f6',
-                  '--button-color': '#2563EB',
-                  '--button-bd': '1px solid rgba(37, 99, 235, 0.25)',
+                  '--button-color': '#4A7DA5',
+                  '--button-bd': '1px solid rgba(74, 125, 165, 0.25)',
                 } as any
               }
             >
-              Chat With Book
+              {t('chatWithBook')}
             </Button>
 
             <Button
@@ -281,12 +274,12 @@ function HeroSection({
               style={{
                 fontWeight: 600,
                 height: 60,
-                backgroundColor: '#2563EB',
+                backgroundColor: '#4A7DA5',
                 color: '#FFFFFF',
                 border: '1px solid transparent',
               }}
             >
-              Get Summary
+              {t('getSummary')}
             </Button>
           </Group>
         </Stack>
@@ -300,7 +293,7 @@ function HeroSection({
           right: '-50px',
           width: '300px',
           height: '300px',
-          background: 'radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(74, 125, 165, 0.1) 0%, transparent 70%)',
           borderRadius: '50%',
           pointerEvents: 'none',
         }}
@@ -311,9 +304,15 @@ function HeroSection({
 
 export default function DashboardPage() {
   const router = useRouter();
+  const t = useTranslations('dashboard');
+  const tCommon = useTranslations('common');
+  const tPrefs = useTranslations('preferences');
   const [recentSummaries, setRecentSummaries] = useState<RecentSummary[]>([]);
   const [recommendedBooks, setRecommendedBooks] = useState<Book[]>([]);
+  const [availableTags, setAvailableTags] = useState<BookTag[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [booksLoading, setBooksLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chatOpened, setChatOpened] = useState(false);
   const [chatBook, setChatBook] = useState<Book | null>(null);
@@ -322,7 +321,45 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
+    fetchTags();
   }, []);
+
+  // Re-fetch books when tag changes
+  useEffect(() => {
+    if (availableTags.length > 0) {
+      fetchBooks(selectedTag);
+    }
+  }, [selectedTag]);
+
+  const fetchTags = async () => {
+    try {
+      const response = await fetch('/api/v1/tags');
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableTags(data.tags || []);
+      }
+    } catch (err) {
+      console.error('[DashboardPage] Error fetching tags:', err);
+    }
+  };
+
+  const fetchBooks = async (tagSlug: string | null) => {
+    setBooksLoading(true);
+    try {
+      const url = tagSlug
+        ? `/api/v1/books?limit=12&tag=${encodeURIComponent(tagSlug)}`
+        : '/api/v1/books?limit=12';
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        setRecommendedBooks(data.books || []);
+      }
+    } catch (err) {
+      console.error('[DashboardPage] Error fetching books:', err);
+    } finally {
+      setBooksLoading(false);
+    }
+  };
 
   // Listen for tour events to open/close chat
   useEffect(() => {
@@ -388,9 +425,9 @@ export default function DashboardPage() {
     } catch (err: any) {
       console.error('[DashboardPage] Error fetching dashboard data:', err);
       if (err.name === 'AbortError') {
-        setError('Request timed out. Please check your connection and try again.');
+        setError(t('timeoutError'));
       } else {
-        setError('Failed to load dashboard data');
+        setError(t('loadError'));
       }
     } finally {
       setLoading(false);
@@ -403,7 +440,7 @@ export default function DashboardPage() {
       <Center style={{ minHeight: '400px' }}>
         <Stack align="center" gap="md">
           <Loader size="lg" />
-          <Text c="dimmed">Loading dashboard...</Text>
+          <Text c="dimmed">{t('loading')}</Text>
         </Stack>
       </Center>
     );
@@ -442,32 +479,61 @@ export default function DashboardPage() {
   return (
     <Container size="xl" pt="0" pb="xl">
       <Stack gap="xl">
-        <Title id="tour-dashboard-title" order={1} c="#000000">For You</Title>
+        <Title id="tour-dashboard-title" order={1} c="#000000">{t('forYou')}</Title>
 
         {/* Hero Section - Continue Reading */}
         <HeroSection book={featuredBook} onOpenChat={handleOpenChat} onGetSummary={handleGetSummary} />
 
-      {/* Recommended Books Carousel */}
-      {recommendedBooks.length > 0 && (
-        <Box id="tour-recommended-carousel">
-          <Stack gap="md" mb="md">
-            <Title id="tour-recommended-title" order={2} c="#000000">Recommended For You</Title>
-            <Text size="lg" c="#374151">
-              Handpicked books based on your interests
-            </Text>
-          </Stack>
-          <BookCarousel 
-            books={recommendedBooks}
-            showTitle={false}
-          />
+      {/* Books Carousel with Tag Filter */}
+      <Box id="tour-recommended-carousel">
+        <Stack gap="md" mb="md">
+          <Title id="tour-recommended-title" order={2} c="#000000">{t('browseBooks')}</Title>
+          {availableTags.length > 0 && (
+            <TagFilter
+              tags={availableTags}
+              selectedTag={selectedTag}
+              onTagSelect={setSelectedTag}
+            />
+          )}
+        </Stack>
+        <Box style={{ position: 'relative', minHeight: 200 }}>
+          {booksLoading && (
+            <Box
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                zIndex: 10,
+                borderRadius: 8,
+              }}
+            >
+              <Loader size="md" />
+            </Box>
+          )}
+          {recommendedBooks.length > 0 ? (
+            <BookCarousel
+              books={recommendedBooks}
+              showTitle={false}
+            />
+          ) : !booksLoading ? (
+            <Center py="xl">
+              <Text c="dimmed">{t('noBooksForTag')}</Text>
+            </Center>
+          ) : null}
         </Box>
-      )}
+      </Box>
 
       {/* Recent Summaries - More compact, less prominent */}
       {recentSummaries.length > 0 && (
         <Box>
           <Stack gap="md" mb="md">
-            <Title order={2} c="#000000">Your Collection</Title>
+            <Title order={2} c="#000000">{t('yourCollection')}</Title>
           </Stack>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
             {recentSummaries.slice(0, 3).map((summary) => (
@@ -483,7 +549,7 @@ export default function DashboardPage() {
                   transition: 'all 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.5)';
+                  e.currentTarget.style.borderColor = 'rgba(74, 125, 165, 0.5)';
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={(e) => {
@@ -496,19 +562,19 @@ export default function DashboardPage() {
                   <Group justify="space-between" wrap="nowrap" align="flex-start">
                     <Stack gap={4} style={{ flex: 1 }}>
                       <Text size="lg" fw={600} lineClamp={2} c="#000000">
-                        {getDisplayTitle(summary.book?.title) || summary.book?.title || 'Unknown Book'}
+                        {getDisplayTitle(summary.book?.title) || summary.book?.title || tCommon('unknownBook')}
                       </Text>
                       <Text size="sm" c="#374151">
-                        by {summary.book?.author || 'Unknown Author'}
+                        by {summary.book?.author || tCommon('unknownAuthor')}
                       </Text>
                     </Stack>
                   </Group>
                   <Group gap="xs">
                     <Badge size="sm" variant="light" color="green">
-                      {SUMMARY_STYLE_OPTIONS.find(opt => opt.value === summary.style)?.label || summary.style}
+                      {(() => { try { return tPrefs(`styles.${summary.style}`) } catch { return summary.style } })()}
                     </Badge>
                     <Badge size="sm" variant="light" color="blue">
-                      {SUMMARY_LENGTH_OPTIONS.find(opt => opt.value === summary.length)?.label || summary.length}
+                      {(() => { try { return tPrefs(`lengths.${summary.length}`) } catch { return summary.length } })()}
                     </Badge>
                   </Group>
                 </Stack>
