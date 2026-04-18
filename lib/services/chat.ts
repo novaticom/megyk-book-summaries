@@ -3,7 +3,13 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateEmbedding } from '@/lib/services/embeddings'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+let _openai: OpenAI | null = null
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  }
+  return _openai
+}
 const CHAT_MODEL = 'gpt-4.1-mini'
 const MAX_RAG_CHUNKS = 5
 const MEMORY_WINDOW = 15
@@ -378,7 +384,7 @@ export async function streamChatResponse(params: StreamChatParams): Promise<Read
   messages.push({ role: 'user', content: userMessage })
 
   // 4. Stream from OpenAI
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAI().chat.completions.create({
     model: CHAT_MODEL,
     messages,
     stream: true,
@@ -417,7 +423,7 @@ export async function generateChatSuggestions(
 ): Promise<string[]> {
   const lang = getLanguageDirective(locale)
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAI().chat.completions.create({
     model: CHAT_MODEL,
     messages: [
       {
