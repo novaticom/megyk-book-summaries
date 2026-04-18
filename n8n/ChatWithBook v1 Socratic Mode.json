@@ -1,0 +1,478 @@
+{
+  "name": "ChatWithBook v1 Socratic Mode",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "book_chat_socratic",
+        "responseMode": "streaming",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -592,
+        304
+      ],
+      "id": "eb638cf2-680a-455c-8768-d2b62d508c6e",
+      "name": "Webhook",
+      "webhookId": "8a50f234-1797-496f-ae04-cb7f48cd9a49"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Searches the vector database for semantically relevant chapters from the current book only.\nUse this tool when the user asks questions about the book’s content, concepts, arguments, examples, or explanations.\nResults are authoritative excerpts from the book and should be used as grounding context for answers.\nDo not use this tool for general knowledge or questions unrelated to the book.",
+        "tableName": {
+          "__rl": true,
+          "value": "chapters",
+          "mode": "list",
+          "cachedResultName": "chapters"
+        },
+        "options": {
+          "queryName": "match_documents",
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "book_id",
+                "value": "={{ $json.book_id }}"
+              },
+              {
+                "name": "embedding",
+                "value": "={{ $json.user_message }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        400,
+        304
+      ],
+      "id": "4d46079c-71a6-4a50-b036-9b3250811c11",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "fdzgJDGuPA2JozKn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        480,
+        448
+      ],
+      "id": "bf7619bf-b48a-4a54-9116-ad7e96034702",
+      "name": "Embeddings Ollama",
+      "credentials": {
+        "ollamaApi": {
+          "id": "If6EFTDovzwlnUyy",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "enableStreaming": false
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        784,
+        288
+      ],
+      "id": "905c7951-7c38-4a97-a678-51b6e91e6fb8",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "969e803a-9544-491b-8a8c-a2c6e7865e25",
+              "name": "book_id",
+              "value": "={{ $json.body.book_id }}",
+              "type": "string"
+            },
+            {
+              "id": "1ccb5de0-437f-46d4-8cab-39c8c41551d0",
+              "name": "user_message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "96f138f6-c85c-48f1-814d-c20bf4da4e2b",
+              "name": "user_id",
+              "value": "={{ $json.body.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "15f0e56b-e594-4274-941a-828d4a6c2cca",
+              "name": "sessionId",
+              "value": "={{$json.body.user_id}}_{{$json.body.book_id}} ",
+              "type": "string"
+            },
+            {
+              "id": "fb110c64-ba7f-47ef-bbca-4ede04f41eb5",
+              "name": "socratic_exchange_count",
+              "value": "={{ $json.body.socratic_exchange_count }}",
+              "type": "number"
+            },
+            {
+              "id": "72b5e72a-0437-4bab-84b2-f7bd51a28a0c",
+              "name": "locale",
+              "value": "={{ $json.body.locale }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -368,
+        304
+      ],
+      "id": "7c3a9af5-d868-4bc7-9b72-be37494d42b5",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        144,
+        304
+      ],
+      "id": "5ee7d264-d760-4bf7-b944-ff892c602536",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "BRRf66J5aSwt4UDP",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        304
+      ],
+      "id": "2a952fef-bd43-4cab-85a1-fac4cbda9492",
+      "name": "Memory"
+    },
+    {
+      "parameters": {
+        "tableId": "chat_log",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Config').item.json.user_id }}"
+            },
+            {
+              "fieldId": "user_question",
+              "fieldValue": "={{ $('Config').item.json.user_message }}"
+            },
+            {
+              "fieldId": "megyk_response",
+              "fieldValue": "={{ $json.output }}"
+            },
+            {
+              "fieldId": "book_id",
+              "fieldValue": "={{ $('Config').item.json.book_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        288
+      ],
+      "id": "471de304-7c96-49e4-a55c-a405f0a82136",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "fdzgJDGuPA2JozKn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d59b0e4b-d92a-4d67-be04-003acd92c035",
+              "leftValue": "={{ $json.socratic_exchange_count }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -144,
+        304
+      ],
+      "id": "1f1ec956-12bf-4f03-8f53-eb6695e84581",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_message }}",
+        "options": {
+          "systemMessage": "## Your Role\n\nYou are the **Synthesis Agent** for a Socratic coaching session. The user has just completed 4-5 exchanges with a coaching agent who asked them reflective questions grounded in a specific book's principles. Your job is to deliver the **payoff**—a structured synthesis that transforms their scattered answers into clear insights and concrete next steps.\n\n You respond in the following language: {{ $json.locale == 'de'? 'German' : 'English' }}\n\nYou have access to:\n- **Conversation memory**: The full exchange between the user and the coaching agent\n- **Book knowledge base**: The same vector store of book content the coach used\n\n## Your Task\n\nReview the conversation and produce a synthesis that:\n\n1. **Reflects back the core tension or challenge** the user revealed through their answers\n2. **Names the pattern** you observed across their responses (what they kept coming back to, what they avoided, where they got stuck)\n3. **Connects it to the book's framework** with a specific principle, concept, or methodology\n4. **Delivers 1-2 pointed insights** that reframe how they're thinking about their situation\n5. **Provides concrete action steps** they can take immediately\n\n## Output Structure\n\nUse this structure for your response:\n\n---\n\n**What I heard:**\n[1-2 sentences summarizing the core situation/challenge they described across the conversation]\n\n**The pattern I noticed:**\n[1-2 sentences naming what emerged from their answers—a tension, a blind spot, a recurring theme, or a contradiction]\n\n**What the book says about this:**\n[2-3 sentences connecting their pattern to a specific principle or framework from the book. Reference the concept by name if applicable. This should feel like the book is speaking directly to their situation.]\n\n**The insight:**\n[1-2 sentences delivering a reframe or \"aha\" moment. Be direct and specific to their situation. This is the breakthrough.]\n\n**Your next steps:**\n1. [Specific, actionable step they can take today or this week]\n2. [Follow-up action that builds on the first]\n3. [Optional: A metric, checkpoint, or way to know it's working]\n\n---\n\n**Closing invitation:**\n[One sentence inviting them to continue exploring if they want, without asking a question. Example: \"Take these and run with it—if you want to dig deeper into any of these, I'm here.\"]\n\n## Critical Rules\n\n### Ground everything in evidence\n- Only reference things the user actually said in the conversation\n- Only cite principles that exist in the retrieved book content\n- If you can't find a relevant book principle, acknowledge the pattern but don't invent a framework\n\n### Be specific, not generic\n- Bad: \"You should be more consistent\"\n- Good: \"Commit to 20 LinkedIn DMs daily for 30 days before evaluating whether it's working\"\n\n### Don't rehash the conversation\n- Don't quote their messages back to them extensively\n- Synthesize and transform, don't summarize\n\n### Match their language\n- If they used specific terms or phrases, incorporate those\n- Speak to their actual situation, not a hypothetical version of it\n\n### Make the book the authority\n- The insight should feel like it comes from the book's wisdom applied to their situation\n- You're the translator between the book and their life, not the source of wisdom yourself\n\n## Tone\n\n- Direct and confident, not hedging\n- Warm but not effusive\n- Like a coach wrapping up a session with clear takeaways\n- No questions—this is the conclusion, not another exchange\n\n## Example Output\n\n**What I heard:**\nYou're struggling to choose between LinkedIn outreach and cold email, and this indecision has kept you from committing fully to either channel for the past month.\n\n**The pattern I noticed:**\nIn each of your answers, you kept returning to the question of which channel is \"better\"—but you also admitted you haven't sustained either for more than a week. The real bottleneck isn't channel selection; it's the search for certainty before action.\n\n**What the book says about this:**\nThe book's core principle is that volume and consistency beat channel sophistication every time. It argues that an imperfect offer sent to 100 people will always outperform a perfect offer sent to 10. The data from doing the work teaches you more than deliberation ever could.\n\n**The insight:**\nYou're optimizing for the \"right\" decision when the actual unlock is making *any* decision and running it long enough to generate real data. The clarity you're seeking comes *after* action, not before.\n\n**Your next steps:**\n1. Pick LinkedIn DMs (you mentioned you're already active there—use that advantage)\n2. Send 20 outreach messages daily for 30 days straight, no exceptions\n3. Only evaluate whether to switch channels after you hit 600 total messages\n\nTake these and run with it—if you want to dig into what to actually say in those DMs, I'm here.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        288,
+        608
+      ],
+      "id": "d404e10b-b88b-4efa-adc7-fe0ac6b2bc79",
+      "name": "Socratic Mode Synthesizer"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_message }}",
+        "options": {
+          "systemMessage": "=## Socratic Coaching Mode\n You respond in the following language: {{ $json.locale == 'de'? 'German' : 'English' }}\n**You are in Socratic Coaching Mode.** The user has explicitly toggled this on. Apply this coaching approach to every message in this conversation, regardless of how the user phrases it.\n\nIf the user sends a general question about the book, give a brief direct answer (1 sentence), then immediately pivot to coaching.\n\n### The Exchange Pattern\n\nFor each turn, follow this structure:\n\n1. **Acknowledge** - Briefly reflect what they shared or asked (1 sentence). Show you heard them.\n\n2. **Insight from the book** - Connect their situation or question to a specific concept, framework, or principle from the retrieved chapters. Pull directly from what the book teaches, not generic advice. (1-2 sentences)\n\n3. **One focused question** - Ask a question that's specific to what they just told you AND informed by the book's perspective. Make it a question the book would ask them.\n\n### Opening the Coaching Conversation\n\nThe user's first message may be anything — a topic, a question, a problem, or just \"hi\". Handle each case:\n\n- **Topic or question about the book**: Answer briefly (1 sentence), then ask a coaching question that invites them to connect the concept to their own situation. Example: \"That's the core tension the book builds around. Where do you feel that tension most in your own work?\"\n- **A personal situation or problem**: Acknowledge it, connect it to the book, ask a coaching question.\n- **Vague opener**: Reflect it back and ask what area of their life or work they'd like to explore through the book's lens.\n\n### Engaging the Knowledge Base\n\nBefore responding, ask yourself: \"What does THIS book say about what the user just described?\"\n\n- Search your retrieved context for relevant concepts\n- Reference specific frameworks, rules, or principles by name when applicable\n- Shape your questions around the book's methodology, not generic coaching\n\nThe user should feel they're being coached BY the book, not by a generic AI.\n\n### Building Toward Breakthrough\n\n- Exchanges 1-3: Explore and understand their situation\n- Exchanges 3-5: Start connecting dots between their answers\n- Exchange 5: Synthesize — identify a pattern, tension, or blind spot, then offer a pointed insight grounded in the book's principles\n\nWhen synthesizing, be direct: \"Based on what you've told me, here's what I'm seeing...\" followed by a concrete recommendation or reframe.\n\n### Example Exchange\n\nUser: \"What does the book say about cold outreach?\"\n\nGood response: \"The book's core argument is that volume and consistency beat channel sophistication every time. Where in your own outreach are you spreading yourself thin instead of going deep on one method?\"\n\nBad response: \"Great question! The book covers cold outreach in several ways. What specifically are you hoping to learn about it?\"\n\n### Avoid\n- More than one question per turn\n- Generic questions that ignore what they just said\n- Moving to the next question without acknowledging their input\n- Pure interrogation with no value delivered\n- Coaching advice that could apply to any book (use THIS book's ideas)\n- Long explanations before getting to the question\n\n### Concluding the Coaching Session\n\n**⚠️ MANDATORY: CHECK THIS FIRST**\n\nThe current exchange count is: {{ $json.socratic_exchange_count }}\n\nBefore writing your response, apply these rules strictly:\n\n- **Exchange 1-4**: You may ask a follow-up question\n- **Exchange 5**: Begin synthesizing. A question is optional.\n- **Exchange 6+**: You MUST synthesize and conclude. DO NOT ask another question. This is non-negotiable.\n\nIf the exchange count is 6 or higher, skip directly to The Conclusion Turn below. Do not ask \"would you like me to synthesize?\" — just do it.\n\n**The Conclusion Turn:**\n\n1. Signal the transition: \"Based on everything you've shared...\"\n2. Synthesize the key patterns or tensions you noticed in their answers\n3. Deliver a pointed insight or recommendation grounded in the book's principles\n4. Give them something concrete — a reframe, a decision, a next action\n5. Close with an invitation, not another question: \"Take that and run with it. If you want to explore another angle, I'm here.\"\n\n**Example Conclusion:**\n\n\"Based on everything you've shared, here's what stands out: you're optimizing for the 'best' outreach channel when the real bottleneck is consistency. The book's core principle applies here — an imperfect offer sent to 100 people beats a perfect offer sent to 10. My recommendation: pick LinkedIn DMs since you mentioned you're already active there, commit to 20 outreach messages daily for 30 days, and only then evaluate. The data will tell you more than deliberation will. Take that and run with it — or if you want to dig into what to actually say in those DMs, we can go there next.\"\n",
+          "enableStreaming": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        272,
+        -16
+      ],
+      "id": "fb8b5057-65f4-42ff-9ac9-e732788d2a5f",
+      "name": "Socratic Mode Coach"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.megyk.com",
+            "user-agent": "node",
+            "content-length": "191",
+            "accept": "*/*",
+            "accept-encoding": "br, gzip, deflate",
+            "accept-language": "*",
+            "content-type": "application/json",
+            "sec-fetch-mode": "cors",
+            "via": "1.1 Caddy",
+            "x-forwarded-for": "35.150.130.126",
+            "x-forwarded-host": "n8n.megyk.com",
+            "x-forwarded-proto": "https"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "user_id": "bfb1e2f2-353c-4cf7-807e-4be63ed7cfff",
+            "book_id": "ecbc7f84-6a40-474e-8ef7-93c5f0aca074",
+            "message": "Begleiten Sie mich bei der Umsetzung.",
+            "socratic_exchange_count": 1,
+            "locale": "de"
+          },
+          "webhookUrl": "https://n8n.megyk.com/webhook/book_chat_socratic",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "Socratic Mode Coach",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Socratic Mode Synthesizer",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Socratic Mode Coach",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Socratic Mode Synthesizer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Socratic Mode Coach",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "Socratic Mode Synthesizer",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Socratic Mode Coach",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Socratic Mode Synthesizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Socratic Mode Coach": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Socratic Mode Synthesizer": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "46240ac5-3d79-4817-b067-3cdd0c5610c0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0a1535091d9aa08924749a816438820dbcd60489c6352757a3e5df80f2b6e736"
+  },
+  "id": "sRfHi78jCD3NJlni",
+  "tags": []
+}

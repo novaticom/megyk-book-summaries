@@ -1,0 +1,491 @@
+{
+  "name": "Chat Question Suggestions With Persistence",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat_suggestions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -144,
+        256
+      ],
+      "id": "150560c9-b6bf-40e8-9d3b-cf9427e30c52",
+      "name": "Webhook",
+      "webhookId": "5d2431c9-171b-40d3-ab9a-f043258399d7"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7bdf57f2-c6ca-43ca-a584-60495cf70e2d",
+              "name": "book_id",
+              "value": "={{ $json.body.book_id }}",
+              "type": "string"
+            },
+            {
+              "id": "316af802-b37f-4d88-89e5-69c167410869",
+              "name": "locale",
+              "value": "={{ $json.body.locale }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        256
+      ],
+      "id": "59a3061a-c67b-424a-b559-59f3cd5a533d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=book title: {{  $('Load Book').item.json.title}}\n\nsummary: {{$('Load Book').item.json.summary }}\n\n",
+        "options": {
+          "systemMessage": "=You are an executive thinking partner.\n You respond in the following language: {{$('Edit Fields').item.json.locale == 'de'? 'German' : 'English' }}\nYour only input is a book title and summary.\n\nBased solely on the implications, themes, and promises suggested by the title and summary, generate 2–3 sharp questions that a high-performing individual would naturally ask. \n\nAssume the reader is:\n- Experienced\n- Time-constrained\n- Focused on leverage, clarity, and outcomes\n\nYour questions must:\n- Be short, direct, and high-signal\n\n\nDo NOT:\n- Explain the questions\n- Add preamble or commentary\n\nOutput format:\nReturn ONLY a JSON array of strings.\n\nExample output:\n[\n  \"What is meant by [key phrase in book title]?\",\n  \"What are the key takeaways from this book?\",\n  \"Where  could I apply the principles to my business?\"\n]\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        976,
+        0
+      ],
+      "id": "3bbc1ed2-9bd0-49ee-9578-d02002be98f1",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1056,
+        224
+      ],
+      "id": "416b2a68-67d7-4e1b-bd47-907c669cfdeb",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "BRRf66J5aSwt4UDP",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1328,
+        112
+      ],
+      "id": "5c6debe8-fc0e-43e0-86bf-a17a4adfa74f",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "books",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.book_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        304,
+        256
+      ],
+      "id": "b9a79999-fe19-4aea-b6c3-3532b6575dbf",
+      "name": "Load Book",
+      "credentials": {
+        "supabaseApi": {
+          "id": "fdzgJDGuPA2JozKn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "chat_suggestions",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "book_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            },
+            {
+              "keyName": "locale",
+              "condition": "eq",
+              "keyValue": "={{ $('Edit Fields').item.json.locale }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        528,
+        256
+      ],
+      "id": "2878f446-a007-447e-b45e-15e5a9325256",
+      "name": "Load Suggestions",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "fdzgJDGuPA2JozKn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "76d6027e-ff87-47c2-b251-65d340567f19",
+              "leftValue": "={{ $json.isEmpty() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        752,
+        256
+      ],
+      "id": "f7195611-3650-44f9-80e4-38e57d353a9a",
+      "name": "If Suggestions Empty"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1328,
+        400
+      ],
+      "id": "32302a5e-8c37-4981-8d17-448f869e2b0f",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "tableId": "chat_suggestions",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "suggestion",
+              "fieldValue": "={{ $json.question }}"
+            },
+            {
+              "fieldId": "book_id",
+              "fieldValue": "={{ $('Load Book').item.json.id }}"
+            },
+            {
+              "fieldId": "locale",
+              "fieldValue": "={{ $('Edit Fields').item.json.locale }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1776,
+        112
+      ],
+      "id": "ec1fe71b-f138-4d67-aff5-173f09fa5c65",
+      "name": "Store Suggestions",
+      "credentials": {
+        "supabaseApi": {
+          "id": "fdzgJDGuPA2JozKn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = items[0].json.output;\n\n// Parse the stringified JSON array\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  throw new Error(\"Failed to parse output as JSON array\");\n}\n\n// Ensure it's an array\nif (!Array.isArray(parsed)) {\n  throw new Error(\"Parsed output is not an array\");\n}\n\n// Return one item per entry\nreturn parsed.map(question => ({\n  json: {\n    question\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        112
+      ],
+      "id": "b4914a54-4c60-4f82-a258-f4a39f6eb514",
+      "name": "Parse Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract suggestion strings from all incoming items\nconst suggestions = items.map(item => item.json.suggestion);\n\n// Encode as a JSON string (array of strings)\nconst encoded = JSON.stringify(suggestions, null, 2);\n\n// Return a single item matching the required format\nreturn [\n  {\n    json: {\n      output: encoded\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        400
+      ],
+      "id": "20fcb9eb-e0a5-4e65-b07e-4131cce462a9",
+      "name": "PreProcess Suggestions"
+    },
+    {
+      "parameters": {
+        "content": "## 🗂️ Chat Question Suggestions (with persistence)\n\n### Purpose\nGenerate and cache 2–3 high-signal executive questions for a book, returning them instantly on repeat requests.\n\n### How it works\n- Accepts a `book_id` via webhook  \n- Loads the book (title + summary) from Supabase  \n- Checks for existing chat suggestions for that book  \n  - **If found** → returns them immediately  \n  - **If missing** → asks an AI agent to generate new questions  \n- Parses the AI response into individual questions  \n- Persists the questions to Supabase for future requests  \n- Responds with a single `output` field containing a JSON-encoded array of strings (LLM-friendly format)\n\n### Why this exists\n- Keeps chat UIs fast and deterministic  \n- Avoids regenerating suggestions on every page load  \n- Ensures consistent, high-quality starter questions per book  \n\n",
+        "height": 512,
+        "width": 768,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -336
+      ],
+      "id": "0407f240-b923-49fb-9f61-19dfcbd2564b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Output\n```json\n{\n  \"output\": \"[\\\"Question 1\\\", \\\"Question 2\\\", \\\"Question 3\\\"]\"\n}\n",
+        "height": 352,
+        "width": 672,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        -80
+      ],
+      "id": "e1503ce7-18cf-4465-821e-303d99257812",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Input\n```json\n{ \n    \"book_id\": \"uuid\" \n}\n```",
+        "height": 224,
+        "width": 752,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        496
+      ],
+      "id": "6c9e65a4-9cb4-4e13-bbaa-7403c09cf370",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.megyk.com",
+            "user-agent": "node",
+            "content-length": "64",
+            "accept": "*/*",
+            "accept-encoding": "br, gzip, deflate",
+            "accept-language": "*",
+            "content-type": "application/json",
+            "sec-fetch-mode": "cors",
+            "via": "1.1 Caddy",
+            "x-forwarded-for": "172.19.0.1",
+            "x-forwarded-host": "n8n.megyk.com",
+            "x-forwarded-proto": "https"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "book_id": "04c7ac03-6d11-4ac6-ba3d-1d556ae8ba22",
+            "locale": "de"
+          },
+          "webhookUrl": "https://n8n.megyk.com/webhook/chat_suggestions",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Load Book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Book": {
+      "main": [
+        [
+          {
+            "node": "Load Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Suggestions": {
+      "main": [
+        [
+          {
+            "node": "If Suggestions Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Suggestions Empty": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PreProcess Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Response": {
+      "main": [
+        [
+          {
+            "node": "Store Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PreProcess Suggestions": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9cd67fcc-c8bf-4f63-83b8-683e90caf6ef",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0a1535091d9aa08924749a816438820dbcd60489c6352757a3e5df80f2b6e736"
+  },
+  "id": "F9OWClEBtwYHjHTv",
+  "tags": []
+}
