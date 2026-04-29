@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { Modal, Stack, Text, Button, Slider, Box, Loader, Center, Alert, Group, Badge, Paper, TextInput, ThemeIcon, Tooltip, ActionIcon } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { IconAlertCircle, IconSparkles, IconCheck, IconCoins, IconGift, IconSend, IconCopy, IconLoader2, IconArrowLeft } from '@tabler/icons-react'
 import { REFERRAL_REWARDS } from '@/lib/types/referral'
 import {
-  UserPreferences,
   SUMMARY_STYLE_OPTIONS,
   SUMMARY_LENGTH_OPTIONS,
   DEFAULT_PREFERENCES,
@@ -43,6 +42,9 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
   const [generating, setGenerating] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null)
+  const [creditCost, setCreditCost] = useState(
+    getSummaryCreditCost(DEFAULT_PREFERENCES.style, DEFAULT_PREFERENCES.length)
+  )
 
   // Invite form state
   const [inviteEmail, setInviteEmail] = useState('')
@@ -55,11 +57,6 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
 
   const style = SUMMARY_STYLE_OPTIONS[styleIndex].value as SummaryStyle
   const length = SUMMARY_LENGTH_OPTIONS[lengthIndex].value as SummaryLength
-
-  // Calculate credit cost based on current selection
-  const creditCost = useMemo(() => {
-    return getSummaryCreditCost(style, length)
-  }, [style, length])
 
   const canAfford = creditBalance ? creditBalance.current_balance >= creditCost : false
 
@@ -75,6 +72,32 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
     }
   }, [])
 
+  const fetchCreditCost = useCallback(async (nextStyle: SummaryStyle, nextLength: SummaryLength) => {
+    try {
+      const response = await fetch('/api/v1/credits/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action_type: 'summary',
+          style: nextStyle,
+          length: nextLength,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (typeof data.required_credits === 'number') {
+          setCreditCost(data.required_credits)
+          return
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching summary credit cost:', error)
+    }
+
+    setCreditCost(getSummaryCreditCost(nextStyle, nextLength))
+  }, [])
+
   useEffect(() => {
     if (opened) {
       fetchPreferences()
@@ -87,6 +110,12 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
       setInviteError(null)
     }
   }, [opened, fetchCreditBalance])
+
+  useEffect(() => {
+    if (opened) {
+      fetchCreditCost(style, length)
+    }
+  }, [opened, style, length, fetchCreditCost])
 
   // Pre-fetch referral link when entering invite screen
   useEffect(() => {

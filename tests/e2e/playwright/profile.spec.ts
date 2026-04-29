@@ -41,10 +41,7 @@ test.describe('User Profile & Preferences', () => {
     await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
-    if (page.url().includes('/auth/signin')) {
-      test.skip('Requires authentication');
-      return;
-    }
+    test.skip(page.url().includes('/auth/signin'), 'Requires authentication');
 
     const preferencesLink = page.locator('a[href*="preferences"]');
 

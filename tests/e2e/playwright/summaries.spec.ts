@@ -24,10 +24,7 @@ test.describe('My Summaries', () => {
     await page.goto('/dashboard/summaries');
     await page.waitForLoadState('networkidle');
 
-    if (page.url().includes('/auth/signin')) {
-      test.skip('Requires authentication');
-      return;
-    }
+    test.skip(page.url().includes('/auth/signin'), 'Requires authentication');
 
     await page.waitForTimeout(2000);
 
@@ -46,10 +43,7 @@ test.describe('My Summaries', () => {
     await page.goto('/dashboard/summaries');
     await page.waitForLoadState('networkidle');
 
-    if (page.url().includes('/auth/signin')) {
-      test.skip('Requires authentication');
-      return;
-    }
+    test.skip(page.url().includes('/auth/signin'), 'Requires authentication');
 
     await page.waitForTimeout(2000);
 

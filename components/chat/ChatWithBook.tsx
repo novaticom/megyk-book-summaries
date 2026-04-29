@@ -26,9 +26,7 @@ import { REFERRAL_REWARDS } from '@/lib/types/referral';
 import { Book } from '@/lib/types/books';
 import { getDisplayTitle } from '@/lib/utils/bookTitle';
 import {
-  getChatMessageCreditCost,
   formatCredits,
-  calculateRemainingChatMessages,
   CreditBalance,
 } from '@/lib/types/credits';
 import { InsufficientCreditsModal, refreshCreditBalance } from '@/components/credits';
@@ -91,6 +89,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null);
+  const [chatCost, setChatCost] = useState(10);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   // History confirmation modal state
   const [showHistoryConfirmation, setShowHistoryConfirmation] = useState(false);
@@ -115,8 +114,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
     t('suggestions.findAnswers'),
   ], [t]);
 
-  const chatCost = getChatMessageCreditCost();
-  const remainingMessages = creditBalance ? calculateRemainingChatMessages(creditBalance.current_balance) : 0;
+  const remainingMessages = creditBalance ? Math.floor(creditBalance.current_balance / chatCost) : 0;
   const canAffordChat = creditBalance ? creditBalance.current_balance >= chatCost : false;
 
   const headerTitle = useMemo(() => {
@@ -153,16 +151,39 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
     }
   }, []);
 
+  const fetchChatCost = useCallback(async () => {
+    try {
+      const response = await fetch('/api/v1/credits/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action_type: 'chat_message' }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (typeof data.required_credits === 'number') {
+          setChatCost(data.required_credits);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching chat credit cost:', error);
+    }
+
+    setChatCost(10);
+  }, []);
+
   // Fetch credit balance, reset Socratic mode, and pick new prompt when chat opens
   useEffect(() => {
     if (opened) {
       fetchCreditBalance();
+      fetchChatCost();
       setShowInsufficientModal(false);
       setSocraticModeEnabled(false);
       setSocraticStartIndex(null);
       setSocraticPrompt(socraticPrompts[Math.floor(Math.random() * socraticPrompts.length)]);
     }
-  }, [opened, fetchCreditBalance, socraticPrompts]);
+  }, [opened, fetchCreditBalance, fetchChatCost, socraticPrompts]);
 
   // Load chat history when resuming - with optional confirmation
   useEffect(() => {
