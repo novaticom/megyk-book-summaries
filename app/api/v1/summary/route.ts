@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createCreditService } from '@/lib/services/credits'
 import { createSummaryGenerationService } from '@/lib/services/summary-generation'
-import { getSummaryCreditCost } from '@/lib/types/credits'
 import { SummaryStyle, SummaryLength } from '@/lib/types/preferences'
 import { createReferralService } from '@/lib/services/referrals'
 import { getLocale } from 'next-intl/server'
@@ -48,7 +47,7 @@ export async function POST(request: NextRequest) {
     const creditService = createCreditService(supabase)
     const style = preferences.style as SummaryStyle
     const length = preferences.length as SummaryLength
-    const creditCost = getSummaryCreditCost(style, length)
+    const creditCost = await creditService.getCreditCost('summary', style, length)
 
     const creditCheck = await creditService.checkBalance(user.id, creditCost)
 

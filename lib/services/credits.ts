@@ -9,7 +9,6 @@ import {
   CreditTransaction,
   CreditTransactionType,
   CreditCheckResult,
-  CREDIT_COSTS,
   getSummaryCreditCost,
   getChatMessageCreditCost,
 } from '@/lib/types/credits'
@@ -115,7 +114,7 @@ export class CreditService {
     style: SummaryStyle,
     length: SummaryLength
   ): Promise<CreditCheckResult> {
-    const cost = getSummaryCreditCost(style, length)
+    const cost = await this.getCreditCost('summary', style, length)
     return this.checkBalance(userId, cost)
   }
 
@@ -123,7 +122,7 @@ export class CreditService {
    * Check if user can afford a chat message
    */
   async checkChatAffordability(userId: string): Promise<CreditCheckResult> {
-    const cost = getChatMessageCreditCost()
+    const cost = await this.getCreditCost('chat_message')
     return this.checkBalance(userId, cost)
   }
 
@@ -159,45 +158,18 @@ export class CreditService {
       } as CreditTransaction
     }
 
-    // First check current balance
-    const balance = await this.getBalance(userId)
-
-    if (!balance) {
-      console.error('No credit balance found for user:', userId)
-      return null
-    }
-
-    if (balance.current_balance < amount) {
-      console.error('Insufficient credits:', {
-        userId,
-        required: amount,
-        available: balance.current_balance,
-      })
-      return null
-    }
-
-    const balanceBefore = balance.current_balance
-    const balanceAfter = balanceBefore - amount
-
-    // Create the transaction record (triggers will update balance)
-    const { data, error } = await this.supabase
-      .from('credit_transactions')
-      .insert({
-        user_id: userId,
-        amount: -amount, // Negative for deductions
-        transaction_type: transactionType,
-        reference_id: referenceId || null,
-        reference_type: referenceType || null,
-        description: description || `${transactionType} deduction`,
-        balance_before: balanceBefore,
-        balance_after: balanceAfter,
-        metadata: metadata || {},
-      })
-      .select()
-      .single()
+    const { data, error } = await this.supabase.rpc('deduct_credits', {
+      p_user_id: userId,
+      p_amount: amount,
+      p_transaction_type: transactionType,
+      p_reference_id: referenceId || null,
+      p_reference_type: referenceType || null,
+      p_description: description || `${transactionType} deduction`,
+      p_metadata: metadata || {},
+    })
 
     if (error) {
-      console.error('Error creating credit transaction:', error)
+      console.error('Error deducting credits:', error)
       return null
     }
 
@@ -217,36 +189,18 @@ export class CreditService {
     description?: string,
     metadata?: Record<string, unknown>
   ): Promise<CreditTransaction | null> {
-    // First get current balance
-    const balance = await this.getBalance(userId)
-
-    if (!balance) {
-      console.error('No credit balance found for user:', userId)
-      return null
-    }
-
-    const balanceBefore = balance.current_balance
-    const balanceAfter = balanceBefore + amount
-
-    // Create the transaction record (triggers will update balance)
-    const { data, error } = await this.supabase
-      .from('credit_transactions')
-      .insert({
-        user_id: userId,
-        amount: amount, // Positive for additions
-        transaction_type: transactionType,
-        reference_id: referenceId || null,
-        reference_type: referenceType || null,
-        description: description || `${transactionType} credit`,
-        balance_before: balanceBefore,
-        balance_after: balanceAfter,
-        metadata: metadata || {},
-      })
-      .select()
-      .single()
+    const { data, error } = await this.supabase.rpc('add_credits', {
+      p_user_id: userId,
+      p_amount: amount,
+      p_transaction_type: transactionType,
+      p_reference_id: referenceId || null,
+      p_reference_type: referenceType || null,
+      p_description: description || `${transactionType} credit`,
+      p_metadata: metadata || {},
+    })
 
     if (error) {
-      console.error('Error creating credit transaction:', error)
+      console.error('Error adding credits:', error)
       return null
     }
 
@@ -263,7 +217,7 @@ export class CreditService {
     summaryId: string,
     bookTitle?: string
   ): Promise<CreditTransaction | null> {
-    const cost = getSummaryCreditCost(style, length)
+    const cost = await this.getCreditCost('summary', style, length)
 
     return this.deductCredits(
       userId,
@@ -288,7 +242,7 @@ export class CreditService {
     bookId: string,
     chatSessionId?: string
   ): Promise<CreditTransaction | null> {
-    const cost = getChatMessageCreditCost()
+    const cost = await this.getCreditCost('chat_message')
 
     return this.deductCredits(
       userId,
