@@ -313,10 +313,12 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
     const endpoint = inSocraticMode ? '/api/v1/book-chat-socratic' : '/api/v1/book-chat';
 
     try {
+      const requestId = createId();
       console.log('[ChatWithBook] Sending message', {
         endpoint,
         bookId: book.id,
         bookTitle: book.title,
+        requestId,
         messageLength: messageText.length
       });
 
@@ -326,6 +328,7 @@ export function ChatWithBook({ opened, onClose, book, loadHistory = true, skipHi
         body: JSON.stringify({
           book_id: book.id,
           message: messageText,
+          request_id: requestId,
           socratic_exchange_count: socraticExchangeCount,
         }),
       });

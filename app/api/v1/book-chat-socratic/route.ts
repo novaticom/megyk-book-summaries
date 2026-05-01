@@ -37,7 +37,10 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { book_id: bookId, message, socratic_exchange_count } = body || {};
+    const { book_id: bookId, message, socratic_exchange_count, request_id: requestId } = body || {};
+    const creditIdempotencyKey = typeof requestId === 'string' && requestId.trim()
+      ? `chat:${requestId.trim()}`
+      : `chat:${crypto.randomUUID()}`;
 
     if (!bookId || !message) {
       return NextResponse.json(
@@ -73,6 +76,7 @@ export async function POST(request: Request) {
     console.log('[book-chat-socratic] Request', {
       bookId,
       userId: user.id,
+      requestId: creditIdempotencyKey,
       exchangeCount,
       mode,
     });
@@ -92,7 +96,8 @@ export async function POST(request: Request) {
     const creditTransaction = await creditService.deductForChat(
       user.id,
       bookId,
-      chatSession?.id
+      chatSession?.id,
+      creditIdempotencyKey
     );
 
     if (!creditTransaction) {

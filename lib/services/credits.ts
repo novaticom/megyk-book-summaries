@@ -138,7 +138,8 @@ export class CreditService {
     referenceId?: string,
     referenceType?: string,
     description?: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
+    idempotencyKey?: string
   ): Promise<CreditTransaction | null> {
     // Skip deduction in dev mode
     if (this.bypassEnabled) {
@@ -148,6 +149,7 @@ export class CreditService {
         user_id: userId,
         amount: -amount,
         transaction_type: transactionType,
+        idempotency_key: idempotencyKey || null,
         reference_id: referenceId || null,
         reference_type: referenceType || null,
         description: description || `${transactionType} deduction (bypassed)`,
@@ -166,6 +168,7 @@ export class CreditService {
       p_reference_type: referenceType || null,
       p_description: description || `${transactionType} deduction`,
       p_metadata: metadata || {},
+      p_idempotency_key: idempotencyKey || null,
     })
 
     if (error) {
@@ -187,7 +190,8 @@ export class CreditService {
     referenceId?: string,
     referenceType?: string,
     description?: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
+    idempotencyKey?: string
   ): Promise<CreditTransaction | null> {
     const { data, error } = await this.supabase.rpc('add_credits', {
       p_user_id: userId,
@@ -197,6 +201,7 @@ export class CreditService {
       p_reference_type: referenceType || null,
       p_description: description || `${transactionType} credit`,
       p_metadata: metadata || {},
+      p_idempotency_key: idempotencyKey || null,
     })
 
     if (error) {
@@ -215,7 +220,8 @@ export class CreditService {
     style: SummaryStyle,
     length: SummaryLength,
     summaryId: string,
-    bookTitle?: string
+    bookTitle?: string,
+    idempotencyKey?: string
   ): Promise<CreditTransaction | null> {
     const cost = await this.getCreditCost('summary', style, length)
 
@@ -230,7 +236,8 @@ export class CreditService {
         style,
         length,
         book_title: bookTitle,
-      }
+      },
+      idempotencyKey
     )
   }
 
@@ -240,7 +247,8 @@ export class CreditService {
   async deductForChat(
     userId: string,
     bookId: string,
-    chatSessionId?: string
+    chatSessionId?: string,
+    idempotencyKey?: string
   ): Promise<CreditTransaction | null> {
     const cost = await this.getCreditCost('chat_message')
 
@@ -253,8 +261,66 @@ export class CreditService {
       'Chat message',
       {
         book_id: bookId,
-      }
+      },
+      idempotencyKey
     )
+  }
+
+  async grantMonthlyAllocation(
+    userId: string,
+    amount: number,
+    cycleKey: string,
+    description = 'Monthly credit allocation'
+  ): Promise<CreditTransaction | null> {
+    return this.addCredits(
+      userId,
+      amount,
+      'monthly_allocation',
+      undefined,
+      'monthly_credit_cycle',
+      description,
+      { cycle_key: cycleKey, monthly_amount: amount },
+      `monthly-allocation:${cycleKey}`
+    )
+  }
+
+  async applyMonthlyReset(
+    userId: string,
+    amount: number,
+    cycleKey: string,
+    description = 'Monthly credit reset'
+  ): Promise<CreditTransaction | null> {
+    return this.deductCredits(
+      userId,
+      amount,
+      'monthly_reset',
+      undefined,
+      'monthly_credit_cycle',
+      description,
+      { cycle_key: cycleKey, monthly_amount: amount },
+      `monthly-reset:${cycleKey}`
+    )
+  }
+
+  async applyCappedMonthlyReset(
+    userId: string,
+    amount: number,
+    cycleKey: string,
+    description = 'Monthly credit reset'
+  ): Promise<CreditTransaction | null> {
+    const { data, error } = await this.supabase.rpc('apply_monthly_credit_reset', {
+      p_user_id: userId,
+      p_amount: amount,
+      p_cycle_key: cycleKey,
+      p_description: description,
+    })
+
+    if (error) {
+      console.error('Error applying capped monthly reset:', error)
+      return null
+    }
+
+    return data as CreditTransaction | null
   }
 
   /**

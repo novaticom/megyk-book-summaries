@@ -19,7 +19,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { book_id, preferences } = body
+    const { book_id, preferences, request_id: requestId } = body
+    const creditIdempotencyKey = typeof requestId === 'string' && requestId.trim()
+      ? `summary:${requestId.trim()}`
+      : `summary:${crypto.randomUUID()}`
 
     if (!book_id) {
       return NextResponse.json(
@@ -133,7 +136,8 @@ export async function POST(request: NextRequest) {
         style,
         length,
         summaryData.id,
-        book.title
+        book.title,
+        creditIdempotencyKey
       )
 
       if (!creditTransaction) {

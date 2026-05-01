@@ -264,6 +264,14 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
     }
   }
 
+  const createRequestId = () => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return crypto.randomUUID()
+    }
+
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  }
+
   const handleGenerate = async () => {
     if (!book) return
 
@@ -272,6 +280,7 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
 
     try {
       console.log('Starting summary generation for book:', book.id)
+      const requestId = createRequestId()
 
       const response = await fetch('/api/v1/summary', {
         method: 'POST',
@@ -280,7 +289,8 @@ export function GenerateSummaryModal({ opened, onClose, book }: GenerateSummaryM
         },
         body: JSON.stringify({
           book_id: book.id,
-          preferences: { style, length }
+          preferences: { style, length },
+          request_id: requestId,
         }),
       })
 

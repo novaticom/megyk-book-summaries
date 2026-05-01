@@ -37,11 +37,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { book_id: bookId, message } = body || {};
+    const { book_id: bookId, message, request_id: requestId } = body || {};
+    const creditIdempotencyKey = typeof requestId === 'string' && requestId.trim()
+      ? `chat:${requestId.trim()}`
+      : `chat:${crypto.randomUUID()}`;
 
     console.log('[book-chat] Request received', {
       bookId,
       userId: user.id,
+      requestId: creditIdempotencyKey,
       messageLength: message?.length,
     });
 
@@ -86,7 +90,8 @@ export async function POST(request: Request) {
     const creditTransaction = await creditService.deductForChat(
       user.id,
       bookId,
-      chatSession?.id
+      chatSession?.id,
+      creditIdempotencyKey
     );
 
     if (!creditTransaction) {
