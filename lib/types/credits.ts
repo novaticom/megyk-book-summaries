@@ -81,6 +81,8 @@ export type CreditTransactionType =
   | 'signup_bonus'
   | 'summary_generation'
   | 'chat_message'
+  | 'monthly_allocation'
+  | 'monthly_reset'
   | 'subscription_credit'
   | 'subscription_rollover'
   | 'top_up_purchase'
@@ -104,6 +106,7 @@ export interface CreditTransaction {
   user_id: string
   amount: number
   transaction_type: CreditTransactionType
+  idempotency_key: string | null
   reference_id: string | null
   reference_type: string | null
   description: string | null

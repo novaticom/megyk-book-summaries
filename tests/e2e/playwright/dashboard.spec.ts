@@ -23,10 +23,7 @@ test.describe('Dashboard Navigation & Layout', () => {
     await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
-    if (page.url().includes('/auth/signin')) {
-      test.skip('Requires authentication');
-      return;
-    }
+    test.skip(page.url().includes('/auth/signin'), 'Requires authentication');
 
     // Check for navigation elements
     const navElements = await page.locator('nav, [role="navigation"], a[href*="dashboard"]').count();
@@ -38,10 +35,7 @@ test.describe('Dashboard Navigation & Layout', () => {
     await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
-    if (page.url().includes('/auth/signin')) {
-      test.skip('Requires authentication');
-      return;
-    }
+    test.skip(page.url().includes('/auth/signin'), 'Requires authentication');
 
     const libraryLink = page.locator('a[href*="library"]').first();
 
@@ -61,10 +55,7 @@ test.describe('Dashboard Navigation & Layout', () => {
     await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
-    if (page.url().includes('/auth/signin')) {
-      test.skip('Requires authentication');
-      return;
-    }
+    test.skip(page.url().includes('/auth/signin'), 'Requires authentication');
 
     // Page should load without errors
     const bodyVisible = await page.locator('body').isVisible();
@@ -76,10 +67,7 @@ test.describe('Dashboard Navigation & Layout', () => {
     await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
-    if (page.url().includes('/auth/signin')) {
-      test.skip('Requires authentication');
-      return;
-    }
+    test.skip(page.url().includes('/auth/signin'), 'Requires authentication');
 
     // Page should load without errors
     const bodyVisible = await page.locator('body').isVisible();

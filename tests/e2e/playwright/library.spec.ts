@@ -27,10 +27,7 @@ test.describe('Book Library', () => {
     await page.goto('/dashboard/library');
     await page.waitForLoadState('networkidle');
 
-    if (page.url().includes('/auth/signin')) {
-      test.skip('Requires authentication');
-      return;
-    }
+    test.skip(page.url().includes('/auth/signin'), 'Requires authentication');
 
     // Look for view toggle buttons
     const viewToggles = await page.locator('button[aria-label*="grid" i], button[aria-label*="list" i], button:has-text("Grid"), button:has-text("List")').count();
@@ -50,10 +47,7 @@ test.describe('Book Library', () => {
     await page.goto('/dashboard/library');
     await page.waitForLoadState('networkidle');
 
-    if (page.url().includes('/auth/signin')) {
-      test.skip('Requires authentication');
-      return;
-    }
+    test.skip(page.url().includes('/auth/signin'), 'Requires authentication');
 
     const searchInput = page.locator('input[type="search"], input[placeholder*="Search" i]');
 

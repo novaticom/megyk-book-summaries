@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createCreditService } from '@/lib/services/credits'
 import { SummaryStyle, SummaryLength } from '@/lib/types/preferences'
-import { getSummaryCreditCost, getChatMessageCreditCost } from '@/lib/types/credits'
 
 interface CreditCheckRequest {
   action_type: 'summary' | 'chat_message'
@@ -36,7 +35,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Calculate required credits
+    const creditService = createCreditService(supabase)
     let requiredCredits: number
 
     if (action_type === 'summary') {
@@ -46,9 +45,9 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
-      requiredCredits = getSummaryCreditCost(style, length)
+      requiredCredits = await creditService.getCreditCost('summary', style, length)
     } else if (action_type === 'chat_message') {
-      requiredCredits = getChatMessageCreditCost()
+      requiredCredits = await creditService.getCreditCost('chat_message')
     } else {
       return NextResponse.json(
         { error: 'Invalid action_type' },
@@ -56,7 +55,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const creditService = createCreditService(supabase)
     const result = await creditService.checkBalance(user.id, requiredCredits)
 
     return NextResponse.json(result)

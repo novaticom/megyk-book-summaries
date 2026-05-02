@@ -9,7 +9,6 @@ import {
   CreditTransaction,
   CreditTransactionType,
   CreditCheckResult,
-  CREDIT_COSTS,
   getSummaryCreditCost,
   getChatMessageCreditCost,
 } from '@/lib/types/credits'
@@ -115,7 +114,7 @@ export class CreditService {
     style: SummaryStyle,
     length: SummaryLength
   ): Promise<CreditCheckResult> {
-    const cost = getSummaryCreditCost(style, length)
+    const cost = await this.getCreditCost('summary', style, length)
     return this.checkBalance(userId, cost)
   }
 
@@ -123,7 +122,7 @@ export class CreditService {
    * Check if user can afford a chat message
    */
   async checkChatAffordability(userId: string): Promise<CreditCheckResult> {
-    const cost = getChatMessageCreditCost()
+    const cost = await this.getCreditCost('chat_message')
     return this.checkBalance(userId, cost)
   }
 
@@ -139,7 +138,8 @@ export class CreditService {
     referenceId?: string,
     referenceType?: string,
     description?: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
+    idempotencyKey?: string
   ): Promise<CreditTransaction | null> {
     // Skip deduction in dev mode
     if (this.bypassEnabled) {
@@ -149,6 +149,7 @@ export class CreditService {
         user_id: userId,
         amount: -amount,
         transaction_type: transactionType,
+        idempotency_key: idempotencyKey || null,
         reference_id: referenceId || null,
         reference_type: referenceType || null,
         description: description || `${transactionType} deduction (bypassed)`,
@@ -159,45 +160,19 @@ export class CreditService {
       } as CreditTransaction
     }
 
-    // First check current balance
-    const balance = await this.getBalance(userId)
-
-    if (!balance) {
-      console.error('No credit balance found for user:', userId)
-      return null
-    }
-
-    if (balance.current_balance < amount) {
-      console.error('Insufficient credits:', {
-        userId,
-        required: amount,
-        available: balance.current_balance,
-      })
-      return null
-    }
-
-    const balanceBefore = balance.current_balance
-    const balanceAfter = balanceBefore - amount
-
-    // Create the transaction record (triggers will update balance)
-    const { data, error } = await this.supabase
-      .from('credit_transactions')
-      .insert({
-        user_id: userId,
-        amount: -amount, // Negative for deductions
-        transaction_type: transactionType,
-        reference_id: referenceId || null,
-        reference_type: referenceType || null,
-        description: description || `${transactionType} deduction`,
-        balance_before: balanceBefore,
-        balance_after: balanceAfter,
-        metadata: metadata || {},
-      })
-      .select()
-      .single()
+    const { data, error } = await this.supabase.rpc('deduct_credits', {
+      p_user_id: userId,
+      p_amount: amount,
+      p_transaction_type: transactionType,
+      p_reference_id: referenceId || null,
+      p_reference_type: referenceType || null,
+      p_description: description || `${transactionType} deduction`,
+      p_metadata: metadata || {},
+      p_idempotency_key: idempotencyKey || null,
+    })
 
     if (error) {
-      console.error('Error creating credit transaction:', error)
+      console.error('Error deducting credits:', error)
       return null
     }
 
@@ -215,38 +190,22 @@ export class CreditService {
     referenceId?: string,
     referenceType?: string,
     description?: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
+    idempotencyKey?: string
   ): Promise<CreditTransaction | null> {
-    // First get current balance
-    const balance = await this.getBalance(userId)
-
-    if (!balance) {
-      console.error('No credit balance found for user:', userId)
-      return null
-    }
-
-    const balanceBefore = balance.current_balance
-    const balanceAfter = balanceBefore + amount
-
-    // Create the transaction record (triggers will update balance)
-    const { data, error } = await this.supabase
-      .from('credit_transactions')
-      .insert({
-        user_id: userId,
-        amount: amount, // Positive for additions
-        transaction_type: transactionType,
-        reference_id: referenceId || null,
-        reference_type: referenceType || null,
-        description: description || `${transactionType} credit`,
-        balance_before: balanceBefore,
-        balance_after: balanceAfter,
-        metadata: metadata || {},
-      })
-      .select()
-      .single()
+    const { data, error } = await this.supabase.rpc('add_credits', {
+      p_user_id: userId,
+      p_amount: amount,
+      p_transaction_type: transactionType,
+      p_reference_id: referenceId || null,
+      p_reference_type: referenceType || null,
+      p_description: description || `${transactionType} credit`,
+      p_metadata: metadata || {},
+      p_idempotency_key: idempotencyKey || null,
+    })
 
     if (error) {
-      console.error('Error creating credit transaction:', error)
+      console.error('Error adding credits:', error)
       return null
     }
 
@@ -261,9 +220,10 @@ export class CreditService {
     style: SummaryStyle,
     length: SummaryLength,
     summaryId: string,
-    bookTitle?: string
+    bookTitle?: string,
+    idempotencyKey?: string
   ): Promise<CreditTransaction | null> {
-    const cost = getSummaryCreditCost(style, length)
+    const cost = await this.getCreditCost('summary', style, length)
 
     return this.deductCredits(
       userId,
@@ -276,7 +236,8 @@ export class CreditService {
         style,
         length,
         book_title: bookTitle,
-      }
+      },
+      idempotencyKey
     )
   }
 
@@ -286,9 +247,10 @@ export class CreditService {
   async deductForChat(
     userId: string,
     bookId: string,
-    chatSessionId?: string
+    chatSessionId?: string,
+    idempotencyKey?: string
   ): Promise<CreditTransaction | null> {
-    const cost = getChatMessageCreditCost()
+    const cost = await this.getCreditCost('chat_message')
 
     return this.deductCredits(
       userId,
@@ -299,8 +261,66 @@ export class CreditService {
       'Chat message',
       {
         book_id: bookId,
-      }
+      },
+      idempotencyKey
     )
+  }
+
+  async grantMonthlyAllocation(
+    userId: string,
+    amount: number,
+    cycleKey: string,
+    description = 'Monthly credit allocation'
+  ): Promise<CreditTransaction | null> {
+    return this.addCredits(
+      userId,
+      amount,
+      'monthly_allocation',
+      undefined,
+      'monthly_credit_cycle',
+      description,
+      { cycle_key: cycleKey, monthly_amount: amount },
+      `monthly-allocation:${cycleKey}`
+    )
+  }
+
+  async applyMonthlyReset(
+    userId: string,
+    amount: number,
+    cycleKey: string,
+    description = 'Monthly credit reset'
+  ): Promise<CreditTransaction | null> {
+    return this.deductCredits(
+      userId,
+      amount,
+      'monthly_reset',
+      undefined,
+      'monthly_credit_cycle',
+      description,
+      { cycle_key: cycleKey, monthly_amount: amount },
+      `monthly-reset:${cycleKey}`
+    )
+  }
+
+  async applyCappedMonthlyReset(
+    userId: string,
+    amount: number,
+    cycleKey: string,
+    description = 'Monthly credit reset'
+  ): Promise<CreditTransaction | null> {
+    const { data, error } = await this.supabase.rpc('apply_monthly_credit_reset', {
+      p_user_id: userId,
+      p_amount: amount,
+      p_cycle_key: cycleKey,
+      p_description: description,
+    })
+
+    if (error) {
+      console.error('Error applying capped monthly reset:', error)
+      return null
+    }
+
+    return data as CreditTransaction | null
   }
 
   /**
