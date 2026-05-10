@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getN8nWebhookHeaders } from '@/lib/n8n-webhooks'
 
+type SignupWebhookPayload = {
+  user_id?: string
+  [key: string]: unknown
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body = (await request.json()) as SignupWebhookPayload
     const webhookUrl = process.env.N8N_SIGNUP_WEBHOOK_URL
+    const idempotencyKey = typeof body.user_id === 'string' ? body.user_id : ''
 
     if (!webhookUrl) {
       console.error('N8N_SIGNUP_WEBHOOK_URL not configured')
@@ -16,7 +22,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         ...getN8nWebhookHeaders(),
-        'x-idempotency-key': body.user_id || '',
+        'x-idempotency-key': idempotencyKey,
       },
       body: JSON.stringify(body),
     })
