@@ -1,6 +1,6 @@
 const N8N_WEBHOOK_HEADER_NAME = 'N8N_WEBHOOK_TOKEN'
 
-export function getN8nWebhookHeaders() {
+export function getN8nWebhookHeaders(): Record<string, string> {
   const token = process.env.N8N_WEBHOOK_TOKEN
 
   if (!token) {
