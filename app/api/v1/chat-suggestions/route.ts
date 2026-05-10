@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { generateChatSuggestions } from '@/lib/services/chat';
 import { getLocale } from 'next-intl/server';
@@ -7,6 +8,13 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json().catch(() => ({}));
     const bookId = typeof body?.book_id === 'string' ? body.book_id : null;
 
@@ -15,10 +23,10 @@ export async function POST(request: NextRequest) {
     }
 
     const locale = await getLocale();
-    const supabase = createAdminClient();
+    const admin = createAdminClient();
 
     // Check for cached suggestions
-    const { data: cached } = await supabase
+    const { data: cached } = await admin
       .from('chat_suggestions')
       .select('suggestion')
       .eq('book_id', bookId)
@@ -30,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Load book details for prompt
-    const { data: book, error: bookError } = await supabase
+    const { data: book, error: bookError } = await admin
       .from('books')
       .select('title, summary, description')
       .eq('id', bookId)
@@ -59,7 +67,7 @@ export async function POST(request: NextRequest) {
       locale,
     }))
 
-    const { error: insertError } = await supabase
+    const { error: insertError } = await admin
       .from('chat_suggestions')
       .insert(rows)
 

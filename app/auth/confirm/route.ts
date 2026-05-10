@@ -5,6 +5,7 @@ import { getUTMFromCookies } from '@/lib/utils/utm.server'
 import { hasUTMParams, parseUTMFromSearchParams, UTM_COOKIE_EXPIRY, UTM_COOKIE_NAME } from '@/lib/utils/utm'
 import { createReferralService } from '@/lib/services/referrals'
 import { REFERRAL_CODE_PARAM, REFERRAL_CODE_COOKIE } from '@/lib/types/referral'
+import { getN8nWebhookHeaders } from '@/lib/n8n-webhooks'
 
 export async function GET(request: NextRequest) {
   console.log('🔵 [CONFIRM ROUTE] Request received')
@@ -83,6 +84,7 @@ export async function GET(request: NextRequest) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              ...getN8nWebhookHeaders(),
               'x-idempotency-key': userData.user?.id || '',
             },
             body: JSON.stringify({

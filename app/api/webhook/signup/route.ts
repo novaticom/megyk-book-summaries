@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getN8nWebhookHeaders } from '@/lib/n8n-webhooks'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +15,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getN8nWebhookHeaders(),
         'x-idempotency-key': body.user_id || '',
       },
       body: JSON.stringify(body),
