@@ -17,5 +17,4 @@ jobs:
           key: ${{ secrets.SSHKEY }}
           script: |
             cd /opt/megyk/book-summaries-megyk-staging/
-            git pull origin staging
             .scripts/deploy-staging.sh
