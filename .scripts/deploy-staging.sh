@@ -50,10 +50,12 @@ echo ""
 
 if echo "$CHANGED_FILES" | grep -qE "\.(ts|tsx|js|jsx)$"; then
   echo "🔨 Code changes detected - FULL REBUILD (~5 min)"
-  docker compose -f ../n8n-docker-caddy/docker-compose.yml up -d --build megyk-books-staging
+  docker compose -f ../n8n-docker-caddy/docker-compose.yml build --pull megyk-books-staging
+  docker compose -f ../n8n-docker-caddy/docker-compose.yml up -d megyk-books-staging
 elif echo "$CHANGED_FILES" | grep -qE "Dockerfile|package.json|yarn.lock"; then
   echo "🔨 Dependencies or Dockerfile changed - FULL REBUILD (~5 min)"
-  docker compose -f ../n8n-docker-caddy/docker-compose.yml up -d --build megyk-books-staging
+  docker compose -f ../n8n-docker-caddy/docker-compose.yml build --pull megyk-books-staging
+  docker compose -f ../n8n-docker-caddy/docker-compose.yml up -d megyk-books-staging
 else
   echo "⚡ Non-code changes only (docs/scripts) - QUICK RESTART (~30 sec)"
   docker compose -f ../n8n-docker-caddy/docker-compose.yml up -d megyk-books-staging
